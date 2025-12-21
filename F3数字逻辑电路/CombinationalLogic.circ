@@ -22,7 +22,7 @@
   <lib desc="#BFH-Praktika" name="9"/>
   <lib desc="#Input/Output-Extra" name="10"/>
   <lib desc="#Soc" name="11"/>
-  <main name="main"/>
+  <main name="main1"/>
   <options>
     <a name="gateUndefined" val="ignore"/>
     <a name="simlimit" val="1000"/>
@@ -57,9 +57,9 @@
     <tool lib="4" name="D Flip-Flop"/>
     <tool lib="4" name="Register"/>
   </toolbar>
-  <circuit name="main">
+  <circuit name="main1">
     <a name="appearance" val="logisim_evolution"/>
-    <a name="circuit" val="main"/>
+    <a name="circuit" val="main1"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
     <comp lib="0" loc="(1030,160)" name="Pin">
@@ -892,7 +892,7 @@
     <comp lib="8" loc="(175,2630)" name="Text">
       <a name="text" val="4-2优先编码器"/>
     </comp>
-    <comp lib="8" loc="(1823,1882)" name="Text">
+    <comp lib="8" loc="(1820,1880)" name="Text">
       <a name="text" val="半减器实现的全减器"/>
     </comp>
     <comp lib="8" loc="(185,2340)" name="Text">
@@ -907,76 +907,76 @@
     <comp lib="8" loc="(2165,180)" name="Text">
       <a name="text" val="可切换进位计数制的七段数码管"/>
     </comp>
-    <comp lib="8" loc="(2165,3648)" name="Text">
+    <comp lib="8" loc="(2165,3645)" name="Text">
       <a name="text" val="B"/>
     </comp>
-    <comp lib="8" loc="(2173,3512)" name="Text">
+    <comp lib="8" loc="(2170,3510)" name="Text">
       <a name="text" val="A"/>
     </comp>
-    <comp lib="8" loc="(2227,3422)" name="Text">
+    <comp lib="8" loc="(2225,3420)" name="Text">
       <a name="text" val="4位原码加法器"/>
     </comp>
-    <comp lib="8" loc="(2305,4338)" name="Text">
+    <comp lib="8" loc="(2305,4335)" name="Text">
       <a name="text" val="B"/>
     </comp>
-    <comp lib="8" loc="(2313,4132)" name="Text">
+    <comp lib="8" loc="(2310,4130)" name="Text">
       <a name="text" val="A"/>
     </comp>
-    <comp lib="8" loc="(2315,4888)" name="Text">
+    <comp lib="8" loc="(2315,4885)" name="Text">
       <a name="text" val="B"/>
     </comp>
-    <comp lib="8" loc="(2323,4682)" name="Text">
+    <comp lib="8" loc="(2320,4680)" name="Text">
       <a name="text" val="A"/>
     </comp>
-    <comp lib="8" loc="(2348,4049)" name="Text">
+    <comp lib="8" loc="(2345,4045)" name="Text">
       <a name="text" val="4位反码加法器"/>
     </comp>
-    <comp lib="8" loc="(2407,2277)" name="Text">
+    <comp lib="8" loc="(2405,2275)" name="Text">
       <a name="text" val="A"/>
     </comp>
-    <comp lib="8" loc="(2450,3986)" name="Text">
+    <comp lib="8" loc="(2450,3985)" name="Text">
       <a name="font" val="SansSerif bold 10"/>
       <a name="text" val="B的符号位"/>
     </comp>
-    <comp lib="8" loc="(2459,3692)" name="Text">
+    <comp lib="8" loc="(2455,3690)" name="Text">
       <a name="text" val="绝对值进行减法"/>
     </comp>
-    <comp lib="8" loc="(2460,3952)" name="Text">
+    <comp lib="8" loc="(2460,3950)" name="Text">
       <a name="font" val="SansSerif bold 10"/>
       <a name="text" val="A的符号位"/>
     </comp>
-    <comp lib="8" loc="(2546,4726)" name="Text">
+    <comp lib="8" loc="(2545,4725)" name="Text">
       <a name="text" val="4位反码加法器2"/>
     </comp>
-    <comp lib="8" loc="(2623,3907)" name="Text">
+    <comp lib="8" loc="(2620,2265)" name="Text">
+      <a name="text" val="B"/>
+    </comp>
+    <comp lib="8" loc="(2620,3905)" name="Text">
       <a name="font" val="SansSerif bold 14"/>
       <a name="text" val="Bout1代表A绝对值大，结果选另一个"/>
     </comp>
-    <comp lib="8" loc="(2624,2267)" name="Text">
-      <a name="text" val="B"/>
-    </comp>
-    <comp lib="8" loc="(2635,3892)" name="Text">
-      <a name="text" val="B-A"/>
-    </comp>
-    <comp lib="8" loc="(2638,3714)" name="Text">
+    <comp lib="8" loc="(2635,3710)" name="Text">
       <a name="text" val="A-B"/>
     </comp>
-    <comp lib="8" loc="(2664,3695)" name="Text">
+    <comp lib="8" loc="(2635,3890)" name="Text">
+      <a name="text" val="B-A"/>
+    </comp>
+    <comp lib="8" loc="(2660,3695)" name="Text">
       <a name="font" val="SansSerif bold 14"/>
       <a name="text" val="Bout1代表B绝对值大，结果选另一个"/>
     </comp>
     <comp lib="8" loc="(2830,2305)" name="Text">
       <a name="text" val="4位减法器"/>
     </comp>
-    <comp lib="8" loc="(2917,3793)" name="Text">
+    <comp lib="8" loc="(2915,3790)" name="Text">
       <a name="font" val="SansSerif bold 10"/>
       <a name="text" val="这里可以获得大绝对值-小绝对值的无符号结果"/>
     </comp>
-    <comp lib="8" loc="(3030,3663)" name="Text">
+    <comp lib="8" loc="(3030,3660)" name="Text">
       <a name="font" val="SansSerif bold 10"/>
       <a name="text" val="异号"/>
     </comp>
-    <comp lib="8" loc="(3118,3934)" name="Text">
+    <comp lib="8" loc="(3115,3930)" name="Text">
       <a name="font" val="SansSerif bold 10"/>
       <a name="text" val="绝对值大的符号位"/>
     </comp>
@@ -3738,7 +3738,7 @@
       <a name="type" val="output"/>
       <a name="width" val="4"/>
     </comp>
-    <comp lib="8" loc="(514,87)" name="Text">
+    <comp lib="8" loc="(510,85)" name="Text">
       <a name="text" val="B"/>
     </comp>
     <comp loc="(1240,280)" name="Full_suber"/>
@@ -4092,49 +4092,49 @@
       <a name="width" val="4"/>
     </comp>
     <comp lib="1" loc="(980,680)" name="AND Gate"/>
-    <comp lib="8" loc="(1078,664)" name="Text">
+    <comp lib="8" loc="(1075,660)" name="Text">
       <a name="font" val="SansSerif bold 10"/>
       <a name="text" val="绝对值大的符号位"/>
     </comp>
-    <comp lib="8" loc="(125,378)" name="Text">
+    <comp lib="8" loc="(125,375)" name="Text">
       <a name="text" val="B"/>
     </comp>
-    <comp lib="8" loc="(133,242)" name="Text">
+    <comp lib="8" loc="(130,240)" name="Text">
       <a name="text" val="A"/>
     </comp>
-    <comp lib="8" loc="(187,152)" name="Text">
+    <comp lib="8" loc="(185,150)" name="Text">
       <a name="text" val="4位原码加法器"/>
     </comp>
-    <comp lib="8" loc="(410,716)" name="Text">
+    <comp lib="8" loc="(410,715)" name="Text">
       <a name="font" val="SansSerif bold 10"/>
       <a name="text" val="B的符号位"/>
     </comp>
-    <comp lib="8" loc="(419,422)" name="Text">
+    <comp lib="8" loc="(415,420)" name="Text">
       <a name="text" val="绝对值进行减法"/>
     </comp>
-    <comp lib="8" loc="(420,682)" name="Text">
+    <comp lib="8" loc="(420,680)" name="Text">
       <a name="font" val="SansSerif bold 10"/>
       <a name="text" val="A的符号位"/>
     </comp>
-    <comp lib="8" loc="(583,637)" name="Text">
+    <comp lib="8" loc="(580,635)" name="Text">
       <a name="font" val="SansSerif bold 14"/>
       <a name="text" val="Bout1代表A绝对值大，结果选另一个"/>
     </comp>
-    <comp lib="8" loc="(595,622)" name="Text">
-      <a name="text" val="B-A"/>
-    </comp>
-    <comp lib="8" loc="(598,444)" name="Text">
+    <comp lib="8" loc="(595,440)" name="Text">
       <a name="text" val="A-B"/>
     </comp>
-    <comp lib="8" loc="(624,425)" name="Text">
+    <comp lib="8" loc="(595,620)" name="Text">
+      <a name="text" val="B-A"/>
+    </comp>
+    <comp lib="8" loc="(620,425)" name="Text">
       <a name="font" val="SansSerif bold 14"/>
       <a name="text" val="Bout1代表B绝对值大，结果选另一个"/>
     </comp>
-    <comp lib="8" loc="(877,523)" name="Text">
+    <comp lib="8" loc="(875,520)" name="Text">
       <a name="font" val="SansSerif bold 10"/>
       <a name="text" val="这里可以获得大绝对值-小绝对值的无符号结果"/>
     </comp>
-    <comp lib="8" loc="(990,393)" name="Text">
+    <comp lib="8" loc="(990,390)" name="Text">
       <a name="font" val="SansSerif bold 10"/>
       <a name="text" val="异号"/>
     </comp>
