@@ -355,7 +355,7 @@ R10第一条执行后变为-2，执行0x10后最终变为8
 
 
 
-###  实现完整的minirv处理器-add和lui
+###  add和lui
 
 接下来, 我们考虑如何实现minirv的剩余6条指令. RTFM后你会发现, `add`指令的功能与sISA中的`add`指令非常类似, 因此不难实现. 而对于`lui`指令, 则和sISA中的`li`指令很相似, 只不过要考虑不同类型的立即数格式.
 
@@ -440,3 +440,67 @@ c:    002081b3    add r3, r1, r2
 00010067：000000000000 000010 000 00000 1100111
 
 跳转到R2存储的位置，也即当前位置，并不保存到寄存器，实际上实现了停机
+
+
+
+### 存储器实现
+
+剩余的4条指令都是访存指令, 它们都需要访问存储器. 访存操作分为读内存(load)和写内存(store)两种. 由于store指令需要写入内存, 因此ROM无法满足这一要求, 我们需要采用RAM.
+
+你之前已经学习过RAM的工作原理了, 但为了方便支持更大的程序, 我们还是使用Logisim提供的`RAM`组件, 你可以在元件库的`Memory(存储库)`类别下找到它. 实例化后, 你需要按照以下配置修改其中的一些关键参数:
+
+- Address Bit Width(地址位宽) - 根据后续的程序大小和你的理解进行配置
+- Data Bit Width(数据位宽) - 32
+- Enables(启用方式) - Use byte enables(使用字节启用)
+- Ram type(RAM型) - non volatile(非易失性)
+- Use clear pin(使用清除销) - No(否)
+- Trigger(触发器) - Rising Edge(上升沿)
+- Asynchronous read(异步读取) - Yes(是)
+- Read write control(读写控制) - Use byte enables(使用字节启用)
+- Data bus implementation(数据总线实现) - Separate data bus for read and write(用于读写的独立数据总线)
+
+完成上述配置工作后, RAM组件的端口包括: 读写地址`A`, 写使能`WE`, 读使能`OE`, 字节写使能`BE0`, `BE1`, `BE2`, `BE3`, 写数据`D`(输入), 读数据`D`(输出), 以及时钟. 在进一步考虑如何将RAM接入处理器的数据通路前, 你还需要了解RISC-V对存储器的约定, 以及相应访存指令的具体行为.
+
+### lw,  lbu,  sw和sb的指令格式与功能
+
+
+
+![image-20251230140149731](Typara用到的图片/image-20251230140149731.png)
+
+![image-20251230140608793](Typara用到的图片/image-20251230140608793.png)
+
+![image-20251230140449808](Typara用到的图片/image-20251230140449808.png)
+
+
+
+> **Load and store instructions transfer a value between the registers and memory. Loads are encoded in** *the I-type format and stores are S-type. The effective address is obtained by adding register rs1 to the sign-extended 12-bit offset. Loads copy a value from memory to register rd. Stores copy the value in register rs2 to memory.*
+>
+> *The LW instruction loads a 32-bit value from memory into rd. LH loads a 16-bit value from memory, then sign-extends to 32-bits before storing in rd. LHU loads a 16-bit value from memory but then zero extends to 32-bits before storing in rd. LB and LBU are defined analogously for 8-bit values. The SW, SH, and SB instructions store 32-bit, 16-bit, and 8-bit values from the low bits of register rs2 to* **memory.**
+
+#### lw
+
+操作码0000011，funct3为010
+
+它从内存中直接复制一个32位的值并存入目标寄存器rd
+
+#### LBU
+
+操作码0000011，funct3为100
+
+从内存中读取一个8位的无符号数的数据出来，并且进行0拓展到32位
+
+> 这两个是load指令，获取目的地址都是直接将offset(也即指令的高12位)进行符号拓展，与rs1相加得到
+
+#### SW
+
+操作码为0100011，funct3为010
+
+把寄存器的rs2的值的32位读入内存
+
+#### SB
+
+操作码为0100011，funct3为000操作码
+
+把寄存器的rs2的值的低8位读入内存
+
+> 这两个是store指令，获取目的地址都是直接将offset(也即指令的高7位与7-11位组合而成)进行符号拓展，与rs1相加得到
