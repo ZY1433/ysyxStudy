@@ -21186,10 +21186,6 @@ fffffffe ffffffff ffffffff 4*0 4*1 4*2 4*3 4*4
       <a name="label" val="sw_rs2data"/>
       <a name="width" val="32"/>
     </comp>
-    <comp lib="0" loc="(360,1790)" name="Tunnel">
-      <a name="facing" val="east"/>
-      <a name="label" val="swop"/>
-    </comp>
     <comp lib="0" loc="(400,1560)" name="Tunnel">
       <a name="facing" val="east"/>
       <a name="label" val="load_store_addr"/>
