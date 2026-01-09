@@ -562,6 +562,8 @@ default： 语句列表
 
 # 第 5 章 深入理解函数
 
+## 1. return语句
+
 之前我们一直在`main`函数中使用`return`语句，现在是时候全面深入地学习一下了。在有返回值的函数中，`return`语句的作用是提供整个函数的返回值，并结束当前函数返回到调用它的地方。在没有返回值的函数中也可以使用`return`语句，作用是直接返回。
 
 函数的返回值应该这样理解：**函数返回一个值相当于定义一个和返回值类型相同的临时变量并用`return`后面的表达式来初始化**。
@@ -667,6 +669,743 @@ int Fibonacci(int n){
     } else {
         return Fibonacci(n-1) + Fibonacci(n-2);
     }
+}
+```
+
+
+
+# 第 6 章 循环语句
+
+## 1. while语句
+
+和`if`语句类似，`while`语句由一个控制表达式和一个子语句组成，子语句可以是由若干条语句组成的语句块。
+
+语句 → while (控制表达式) 语句
+
+如果控制表达式的值为真，子语句就被执行，然后再次测试控制表达式的值，如果还是真，就把子语句再执行一遍，再测试控制表达式的值……这种控制流程称为循环（Loop），子语句称为循环体。如果某次测试控制表达式的值为假，就跳出循环执行后面的`return`语句，如果第一次测试控制表达式的值就是假，那么直接跳到`return`语句，循环体一次都不执行。
+
+此外还有一点不同：看[图 5.2 “factorial(3)的调用过程”](http://akaedu.github.io/book/ch05s03.html#func2.factorial)，在整个递归调用过程中，虽然分配和释放了很多变量，但所有变量都只在初始化时赋值，没有任何变量的值发生过改变，而上面的循环程序则通过对`n`和`result`这两个变量多次赋值来达到同样的目的。前一种思路称为函数式编程（Functional Programming），而后一种思路称为命令式编程（Imperative Programming），这个区别类似于[第 1 节 “程序和编程语言”](http://akaedu.github.io/book/intro.program.html)讲的Declarative和Imperative的区别。
+
+> 1、用循环解决[第 3 节 “递归”](http://akaedu.github.io/book/ch05s03.html#func2.recursion)的所有习题，体会递归和循环这两种不同的思路。
+>
+> 2、编写程序数一下1到100的所有整数中出现多少次数字9。在写程序之前先把这些问题考虑清楚：
+>
+> 1. 这个问题中的循环变量是什么？
+> 2. 这个问题中的累加器是什么？用加法还是用乘法累积？
+> 3. 在[第 2 节 “if/else语句”](http://akaedu.github.io/book/ch04s02.html#cond.ifelse)的习题1写过取一个整数的个位和十位的表达式，这两个表达式怎样用到程序中？
+
+1、
+
+```c
+int GCD(int a, int b){
+    a = abs(a);
+    b = abs(b);
+	int c = a%b;
+    while(c != 0){
+        a = b;
+        b = c;
+        c = a%b;
+    }
+    return b;
+}
+```
+
+```c
+int Fibonacci(int n){
+    int a = 1;
+    int b = 1;
+    if(n <= 2){
+        return 1;
+    } else {
+        int c;
+        n = n-2;
+        while(n--){
+			c = a+b;
+            a = b;
+            b = c;
+        }
+        return c;
+    }
+    
+}
+```
+
+2、
+
+循环变量是当前的数字，用怒骂表示
+
+累加器是9的个数，用cnt表示，用加法累加
+
+对每个数判断个位和10位是不是有9，是了就cnt++
+
+```c
+int countNine(void){
+    int num = 1;
+    int cnt = 0;
+    while(num < 100){
+        int one = num%10;
+		int t = num/10;
+		int ten = t%10;
+        if(one == 9){
+            cnt++;
+        }
+        if(ten == 9){
+            cnt++;
+        }
+        num++；
+    }//因为100里没有9，所以不用考虑100，也不用管百位
+    return cnt;
+}
+```
+
+输出为20
+
+![image-20260109192606372](C:\Users\ZHANGYANG\AppData\Roaming\Typora\typora-user-images\image-20260109192606372.png)
+
+## 2. do/while语句
+
+`while`语句先测试控制表达式的值再执行循环体，而`do/while`语句先执行循环体再测试控制表达式的值。如果控制表达式的值一开始就是假，`while`语句的循环体一次都不执行，而`do/while`语句的循环体仍然要执行一次再跳出循环。其实只要有`while`循环就足够了，`do/while`循环和后面要讲的`for`循环都可以改写成`while`循环，只不过有些情况下用`do/while`或`for`循环写起来更简便，代码更易读。
+
+## 3. for语句
+
+使用循环变量最见的是`for`循环这种形式。`for`语句的语法是：
+
+for (控制表达式1; 控制表达式2; 控制表达式3) 语句
+
+如果不考虑循环体中包含`continue`语句的情况（稍后介绍`continue`语句），这个`for`循环等价于下面的`while`循环：
+
+```c
+控制表达式1;
+while (控制表达式2) {
+	语句
+	控制表达式3;
+}
+```
+
+从这种等价形式来看，控制表达式1和3都可以为空，但控制表达式2是必不可少的，例如`for (;1;) {...}`等价于`while (1) {...}`死循环。C语言规定，如果控制表达式2为空，则认为控制表达式2的值为真，因此死循环也可以写成`for (;;) {...}`。
+
+使用++、--运算符会使程序更加简洁，但也会影响程序的可读性，[[K&R\]](http://akaedu.github.io/book/bi01.html#bibli.kr)中的示例代码大量运用++、--和其它表达式的组合使得代码非常简洁。为了让初学者循序渐进，在接下来的几章中++、--运算符总是单独组成一个表达式而不跟其它表达式组合，从[第 11 章 *排序与查找*](http://akaedu.github.io/book/ch11.html#sortsearch)开始将采用[[K&R\]](http://akaedu.github.io/book/bi01.html#bibli.kr)的简洁风格。
+
+我们看一个有意思的问题：`a+++++b`这个表达式如何理解？应该理解成`a++ ++ +b`还是`a++ + ++b`，还是`a + ++ ++b`呢？应该按第一种方式理解。编译的过程分为词法解析和语法解析两个阶段，在词法解析阶段，编译器总是从前到后找最长的合法Token。把这个表达式从前到后解析，变量名`a`是一个Token，`a`后面有两个以上的+号，在C语言中一个+号是合法的Token（可以是加法运算符或正号），两个+号也是合法的Token（可以是自增运算符），根据最长匹配原则，编译器绝不会止步于一个+号，而一定会把两个+号当作一个Token。再往后解析仍然有两个以上的+号，所以又是一个++运算符。再往后解析只剩一个+号了，是加法运算符。再往后解析是变量名`b`。词法解析之后进入下一阶段语法解析，`a`是一个表达式，表达式++还是表达式，表达式再++还是表达式，表达式再+b还是表达式，语法上没有问题。最后编译器会做一些基本的语义分析，这时就有问题了，++运算符要求操作数能做左值，`a`能做左值所以`a++`没问题，但表达式`a++`的值只能做右值，不能再++了，所以最终编译器会报错。
+
+C99规定了一种新的`for`循环语法，在控制表达式1的位置可以有变量定义。例如上例的循环变量`i`可以只在`for`循环中定义：
+
+```
+int factorial(int n)
+{
+	int result = 1;
+	for(int i = 1; i <= n; i++)
+		result = result * i;
+	return result;
+}
+```
+
+如果这样定义，那么变量`i`只是`for`循环中的局部变量而不是整个函数的局部变量，相当于[第 1 节 “if语句”](http://akaedu.github.io/book/ch04s01.html#cond.if)讲过的语句块中的局部变量，在循环结束后就不能再使用`i`这个变量了。这个程序用`gcc`编译要加上选项`-std=c99`。这种语法也是从C++借鉴的，考虑到兼容性不建议使用这种写法。
+
+## 4. break和continue语句
+
+在[第 4 节 “switch语句”](http://akaedu.github.io/book/ch04s04.html#cond.switch)中我们见到了`break`语句的一种用法，用来跳出`switch`语句块，这个语句也可以用来跳出循环体。`continue`语句也会终止当前循环，和`break`语句不同的是，`continue`语句终止当前循环后又回到循环体的开头准备执行下一次循环。对于`while`循环和`do/while`循环，执行`continue`语句之后测试控制表达式，如果值为真则继续执行下一次循环；对于`for`循环，执行`continue`语句之后首先计算控制表达式3，然后测试控制表达式2，如果值为真则继续执行下一次循环。例如下面的代码打印1到100之间的素数：
+
+
+
+**例 6.1. 求1-100的素数**
+
+```c
+#include <stdio.h>
+
+int is_prime(int n)
+{
+	int i;
+	for (i = 2; i < n; i++)
+		if (n % i == 0)
+			break;
+	if (i == n)
+		return 1;
+	else
+		return 0;
+}
+
+int main(void)
+{
+	int i;
+	for (i = 1; i <= 100; i++) {
+		if (!is_prime(i))
+			continue;
+		printf("%d\n", i);
+	}
+	return 0;
+}
+```
+
+> 1、求素数这个程序只是为了说明`break`和`continue`的用法才这么写的，其实完全可以不用`break`和`continue`，请读者修改一下控制流程，去掉`break`和`continue`而保持功能不变。
+>
+> 2、上一节讲过怎样把`for`循环改写成等价的`while`循环，但也提到如果循环体中有`continue`语句这两种形式就不等价了，想一想为什么不等价了？
+
+1、
+
+```c
+#include <stdio.h>
+
+int is_prime(int n)
+{
+	int i;
+	for (i = 2; i < n; i++){
+        if (n % i == 0)
+			return 0;
+    }
+	return 1;
+}
+
+int main(void)
+{
+	int i;
+	for (i = 1; i <= 100; i++) {
+		if (is_prime(i))
+			printf("%d\n", i);
+	}
+	return 0;
+}
+```
+
+2、因为如果有continue语句的话，for循环不一定会执行完内部语句才执行控制表达式3，可能不执行语句就直接执行3，想改成等价的需要加一些if判断
+
+## 5. 嵌套循环
+
+在循环中调用一个函数，而那个函数里面又有一个循环，这其实是一种嵌套循环。
+
+在有多层循环或`switch`嵌套的情况下，`break`只能跳出最内层的循环或`switch`，`continue`也只能终止最内层循环并回到该循环的开头。
+
+> 1、上面打印的小九九有一半数据是重复的，因为8*9和9*8的结果一样。请修改程序打印这样的小九九：
+>
+> ```
+> 1	
+> 2	4	
+> 3	6	9	
+> 4	8	12	16	
+> 5	10	15	20	25	
+> 6	12	18	24	30	36	
+> 7	14	21	28	35	42	49	
+> 8	16	24	32	40	48	56	64	
+> 9	18	27	36	45	54	63	72	81
+> ```
+>
+> 2、编写函数`diamond`打印一个菱形。如果调用`diamond(3, '*')`则打印：
+>
+> ```
+> 	*
+> *	*	*
+> 	*
+> ```
+>
+> 如果调用`diamond(5, '+')`则打印：
+>
+> ```
+> 		+
+> 	+	+	+
+> +	+	+	+	+
+> 	+	+	+
+> 		+
+> ```
+>
+> 如果用偶数做参数则打印错误提示。
+
+1、
+
+```c
+void print_99(void){
+    for(int i = 1; i <= 9; i++){
+        for(int j = 1; j <= i; j++){
+            printf("%d\t");
+        }
+        printf("\n");
+    }
+}
+```
+
+![image-20260109194543549](C:\Users\ZHANGYANG\AppData\Roaming\Typora\typora-user-images\image-20260109194543549.png)
+
+2、
+
+```c
+void diamond(int n, char c){
+    if(n % 2 == 0){
+        printf("n必须为奇数才可以打印！");
+        return;
+    }
+    for(int i = 1; i <= n; i+=2){
+        for(int k = 0; k < (n-i)/2; k++){
+                printf("\t");
+            }
+        for(int j = 0; j < i; j++){
+            printf("%c\t",c);
+        }
+        printf("\n");
+    }
+    for(int i = n-2; i >= 0; i-=2){
+        for(int k = 0; k < (n-i)/2; k++){
+                printf("\t");
+            }
+        for(int j = 0; j < i; j++){
+            printf("%c\t",c);
+        }
+        printf("\n");
+    }
+}
+```
+
+![image-20260109200234764](C:\Users\ZHANGYANG\AppData\Roaming\Typora\typora-user-images\image-20260109200234764.png)
+
+## 6. goto语句和标号
+
+分支、循环都讲完了，现在只剩下最后一种影响控制流程的语句了，就是`goto`语句，实现无条件跳转。我们知道`break`只能跳出最内层的循环，如果在一个嵌套循环中遇到某个错误条件需要立即跳出最外层循环做出错处理，就可以用`goto`语句，例如：
+
+```
+for (...)
+	for (...) {
+		...
+		if (出现错误条件)
+			goto error;
+	}
+error:
+	出错处理;
+```
+
+这里的`error:`叫做标号（Label），任何语句前面都可以加若干个标号，每个标号的命名也要遵循标识符的命名规则。
+
+`goto`语句过于强大了，从程序中的任何地方都可以无条件跳转到任何其它地方，只要在那个地方定义一个标号就行，唯一的限制是`goto`只能跳转到同一个函数中的某个标号处，而不能跳到别的函数中[[11](http://akaedu.github.io/book/ch06s06.html#ftn.id2727782)]。**滥用`goto`语句会使程序的控制流程非常复杂，可读性很差**。著名的计算机科学家Edsger W. Dijkstra最早指出编程语言中`goto`语句的危害，提倡取消`goto`语句。`goto`语句不是必须存在的，显然可以用别的办法替代，比如上面的代码段可以改写为：
+
+```c
+int cond = 0; /* bool variable indicating error condition */
+for (...) {
+	for (...) {
+		...
+		if (出现错误条件) {
+			cond = 1;
+			break;
+		}
+	}
+	if (cond)
+		break;
+}
+if (cond)
+	出错处理;
+```
+
+通常`goto`语句只用于这种场合，一个函数中任何地方出现了错误条件都可以立即跳转到函数末尾做出错处理（例如释放先前分配的资源、恢复先前改动过的全局变量等），处理完之后函数返回。比较用`goto`和不用`goto`的两种写法，用`goto`语句还是方便很多。但是除此之外，在任何其它场合都不要轻易考虑使用`goto`语句。有些编程语言（如C++）中有异常（Exception）处理的语法，可以代替`goto`和`setjmp/longjmp`的这种用法。
+
+### 标号
+
+回想一下，我们在[第 4 节 “switch语句”](http://akaedu.github.io/book/ch04s04.html#cond.switch)学过`case`和`default`后面也要跟冒号（:号，Colon），事实上它们是两种特殊的标号。和标号有关的语法规则如下：
+
+语句 → 标识符: 语句
+语句 → case 常量表达式: 语句
+语句 → default: 语句
+
+反复应用这些语法规则进行组合可以在一条语句前面添加多个标号，例如在[例 4.2 “缺break的switch语句”](http://akaedu.github.io/book/ch04s04.html#cond.switch2)的代码中，有些语句前面有多个`case`标号。现在我们再看`switch`语句的格式：
+
+switch (控制表达式) {
+case 常量表达式： 语句列表
+case 常量表达式： 语句列表
+...
+default： 语句列表
+}
+
+{}里面是一组语句列表，其中每个分支的第一条语句带有`case`或`default`标号，从语法上来说，`switch`的语句块和其它分支、循环结构的语句块没有本质区别：
+
+语句 → switch (控制表达式) 语句
+语句 → { 语句列表 }
+
+有兴趣的读者可以在网上查找有关Duff's Device的资料，Duff's Device是一段很有意思的代码，正是利用“`switch`的语句块和循环结构的语句块没有本质区别”这一点实现了一个巧妙的代码优化。
+
+> ## 关于Duff's Device
+>
+> 对于下面这段代码
+>
+> ```c
+> void send( int * to, int * from, int count) {
+> 	for (int i = 0; i < count; i++) {
+> 		*to++ = *from++;
+> 	}
+> }
+> ```
+>
+> 如果count 是10000，那么就需要循环10000次。这么多次数的循环，每次循环都要进行一次判断，对CPU利用率并不高。
+>
+> 用Duff's device 方法改写后的代码，展示如下：
+>
+> ```c
+> void send( int * to, int * from, int count) {
+>     int n = (count + 7 ) / 8;
+>     switch (count % 8 ) {
+>     case 0 :    do { * to ++ = * from ++ ;
+>     case 7 :          * to ++ = * from ++ ;
+>     case 6 :          * to ++ = * from ++ ;
+>     case 5 :          * to ++ = * from ++ ;
+>     case 4 :          * to ++ = * from ++ ;
+>     case 3 :          * to ++ = * from ++ ;
+>     case 2 :          * to ++ = * from ++ ;
+>     case 1 :          * to ++ = * from ++ ;
+>            } while (--n > 0);
+>     }  
+> }
+> ```
+>
+> 如果count为10000，那么之前的代码需要循环10000次，而用Duff' device改写后，只需要 1250次循环即可。
+>
+> 哪怕count不能被8整除也没关系，第一次循环会先执行余数次，之后每次都是8次，纸质执行完毕
+>
+> 这样，while的判断次数就大大减少了
+>
+> 虽然switch的判断次数会增加，但是编译器会对间隔很小的switch做优化，降低开销
+
+
+
+# 第 7 章 结构体
+
+## 1. 复合类型与结构体
+
+如果用实部和虚部表示一个复数，我们可以写成由两个`double`型组成的结构体：
+
+```c
+struct complex_struct {
+	double x, y;
+};
+```
+
+这一句定义了标识符`complex_struct`（同样遵循标识符的命名规则），这种标识符在C语言中称为Tag，`struct complex_struct { double x, y; }`整个可以看作一个类型名[[12](http://akaedu.github.io/book/ch07s01.html#ftn.id2730268)]，就像`int`或`double`一样，只不过它是一个复合类型，如果用这个类型名来定义变量，可以这样写：
+
+```c
+struct complex_struct {
+	double x, y;
+} z1, z2;
+```
+
+这样`z1`和`z2`就是两个变量名，变量定义后面带个;号是我们早就习惯的。但即使像先前的例子那样只定义了`complex_struct`这个Tag而不定义变量，}后面的;号也不能少。这点一定要注意，类型定义也是一种声明，声明都要以;号结尾，结构体类型定义的}后面少;号是初学者常犯的错误。不管是用上面两种形式的哪一种定义了`complex_struct`这个Tag，以后都可以直接用`struct complex_struct`来代替类型名了。例如可以这样定义另外两个复数变量：
+
+```c
+struct complex_struct z3, z4;
+```
+
+如果在定义结构体类型的同时定义了变量，也可以不必写Tag，例如：
+
+```c
+struct {
+	double x, y;
+} z1, z2;
+```
+
+但这样就没办法再次引用这个结构体类型了，因为它没有名字。每个复数变量都有两个成员（Member）x和y，可以用.运算符（.号，Period）来访问，这两个成员的存储空间是相邻的[[13](http://akaedu.github.io/book/ch07s01.html#ftn.id2730413)]，合在一起组成复数变量的存储空间。
+
+看下面的例子：
+
+```c
+#include <stdio.h>
+
+int main(void)
+{
+	struct complex_struct { double x, y; } z;
+	double x = 3.0;	
+	z.x = x;
+	z.y = 4.0;
+	if (z.y < 0)
+		printf("z=%f%fi\n", z.x, z.y);
+	else
+		printf("z=%f+%fi\n", z.x, z.y);
+
+	return 0;
+}
+```
+
+注意上例中变量`x`和变量`z`的成员`x`的名字并不冲突，因为变量`z`的成员`x`只能通过表达式`z.x`来访问，编译器可以从语法上区分哪个`x`是变量`x`，哪个`x`是变量`z`的成员`x`，[第 3 节 “变量的存储布局”](http://akaedu.github.io/book/ch19s03.html#asmc.layout)会讲到这两个标识符`x`属于不同的命名空间。结构体Tag也可以定义在全局作用域中，这样定义的Tag在其定义之后的各函数中都可以使用。
+
+结构体变量也可以在定义时初始化，例如：
+
+```c
+struct complex_struct z = { 3.0, 4.0 };
+```
+
+Initializer中的数据依次赋给结构体的各成员。如果Initializer中的数据比结构体的成员多，编译器会报错，但如果只是末尾多个逗号则不算错。如果Initializer中的数据比结构体的成员少，未指定的成员将用0来初始化，就像未初始化的全局变量一样。例如以下几种形式的初始化都是合法的：
+
+```c
+double x = 3.0;
+struct complex_struct z1 = { x, 4.0, }; /* z1.x=3.0, z1.y=4.0 */
+struct complex_struct z2 = { 3.0, }; /* z2.x=3.0, z2.y=0.0 */
+struct complex_struct z3 = { 0 }; /* z3.x=0.0, z3.y=0.0 */
+```
+
+注意，`z1`必须是局部变量才能用另一个变量`x`的值来初始化它的成员，如果是全局变量就只能用常量表达式来初始化。这也是C99的新特性，C89只允许在{}中使用常量表达式来初始化，无论是初始化全局变量还是局部变量。
+
+**{}这种语法不能用于结构体的赋值**，例如这样是错误的：
+
+```c
+struct complex_struct z1;
+z1 = { 3.0, 4.0 };
+```
+
+**以前我们初始化基本类型的变量所使用的Initializer都是表达式，表达式当然也可以用来赋值，但现在这种由{}括起来的Initializer并不是表达式，所以不能用来赋值**[[14](http://akaedu.github.io/book/ch07s01.html#ftn.id2730593)]。Initializer的语法总结如下：
+
+Initializer → 表达式
+Initializer → { 初始化列表 } 
+初始化列表 → Designated-Initializer, Designated-Initializer, ...
+（最后一个Designated-Initializer末尾可以有一个多余的,号）
+Designated-Initializer → Initializer
+Designated-Initializer → .标识符 = Initializer
+Designated-Initializer → [常量表达式] = Initializer
+
+Designated Initializer是C99引入的新特性，用于初始化稀疏（Sparse）结构体和稀疏数组很方便。有些时候结构体或数组中只有某一个或某几个成员需要初始化，其它成员都用0初始化即可，用Designated Initializer语法可以针对每个成员做初始化（Memberwise Initialization），很方便。例如：
+
+```
+struct complex_struct z1 = { .y = 4.0 }; /* z1.x=0.0, z1.y=4.0 */
+```
+
+结构体类型用在表达式中有很多限制，不像基本类型那么自由，比如+ - * /等算术运算符和&& || !等逻辑运算符都不能作用于结构体类型，`if`语句、`while`语句中的控制表达式的值也不能是结构体类型。
+
+结构体变量之间使用赋值运算符是允许的，用一个结构体变量初始化另一个结构体变量也是允许的，例如：
+
+```c
+struct complex_struct z1 = { 3.0, 4.0 };
+struct complex_struct z2 = z1;
+z1 = z2;
+```
+
+既然结构体变量之间可以相互赋值和初始化，也就可以当作函数的参数和返回值来传递：
+
+```c
+struct complex_struct add_complex(struct complex_struct z1, struct complex_struct z2)
+{
+	z1.x = z1.x + z2.x;
+	z1.y = z1.y + z2.y;
+	return z1;
+}
+```
+
+## 2. 数据抽象
+
+现在我们来实现一个完整的复数运算程序。在上一节我们已经定义了复数的结构体类型，现在需要围绕它定义一些函数。复数可以用直角座标或极座标表示，直角座标做加减法比较方便，极座标做乘除法比较方便。如果我们定义的复数结构体是直角座标的，那么应该提供极座标的转换函数，以便在需要的时候可以方便地取它的模和辐角：
+
+```c
+#include <math.h>
+
+struct complex_struct {
+	double x, y;
+};
+
+double real_part(struct complex_struct z)
+{
+	return z.x;
+}
+
+double img_part(struct complex_struct z)
+{
+	return z.y;
+}
+
+double magnitude(struct complex_struct z)
+{
+	return sqrt(z.x * z.x + z.y * z.y);
+}
+
+double angle(struct complex_struct z)
+{
+	return atan2(z.y, z.x);
+}
+```
+
+此外，我们还提供两个函数用来构造复数变量，既可以提供直角座标也可以提供极座标，在函数中自动做相应的转换然后返回构造的复数变量：
+
+```c
+struct complex_struct make_from_real_img(double x, double y)
+{
+	struct complex_struct z;
+	z.x = x;
+	z.y = y;
+	return z;
+}
+
+struct complex_struct make_from_mag_ang(double r, double A)
+{
+	struct complex_struct z;
+	z.x = r * cos(A);
+	z.y = r * sin(A);
+	return z;
+}
+```
+
+在此基础上就可以实现复数的加减乘除运算了：
+
+```c
+struct complex_struct add_complex(struct complex_struct z1, struct complex_struct z2)
+{
+	return make_from_real_img(real_part(z1) + real_part(z2),
+				  img_part(z1) + img_part(z2));
+}
+
+struct complex_struct sub_complex(struct complex_struct z1, struct complex_struct z2)
+{
+	return make_from_real_img(real_part(z1) - real_part(z2),
+				  img_part(z1) - img_part(z2));
+}
+
+struct complex_struct mul_complex(struct complex_struct z1, struct complex_struct z2)
+{
+	return make_from_mag_ang(magnitude(z1) * magnitude(z2),
+				 angle(z1) + angle(z2));
+}
+
+struct complex_struct div_complex(struct complex_struct z1, struct complex_struct z2)
+{
+	return make_from_mag_ang(magnitude(z1) / magnitude(z2),
+				 angle(z1) - angle(z2));
+}
+```
+
+可以看出，复数加减乘除运算的实现并没有直接访问结构体`complex_struct`的成员`x`和`y`，而是把它看成一个整体，通过调用相关函数来取它的直角座标和极座标。这样就可以非常方便地替换掉结构体`complex_struct`的存储表示，例如改为用极座标来存储：
+
+```c
+#include <math.h>
+
+struct complex_struct {
+	double r, A;
+};
+
+double real_part(struct complex_struct z)
+{
+	return z.r * cos(z.A);
+}
+
+double img_part(struct complex_struct z)
+{
+	return z.r * sin(z.A);
+}
+
+double magnitude(struct complex_struct z)
+{
+	return z.r;
+}
+
+double angle(struct complex_struct z)
+{
+	return z.A;
+}
+
+struct complex_struct make_from_real_img(double x, double y)
+{
+	struct complex_struct z;
+	z.A = atan2(y, x);
+	z.r = sqrt(x * x + y * y);
+}
+
+struct complex_struct make_from_mag_ang(double r, double A)
+{
+	struct complex_struct z;
+	z.r = r;
+	z.A = A;
+	return z;
+}
+```
+
+虽然结构体`complex_struct`的存储表示做了这样的改动，`add_complex`、`sub_complex`、`mul_complex`、`div_complex`这几个复数运算的函数却不需要做任何改动，仍然可以用，原因在于这几个函数只把结构体`complex_struct`当作一个整体来使用，而没有直接访问它的成员，因此也不依赖于它有哪些成员。
+
+在我们的复数运算程序中，复数有可能用直角座标或极座标来表示，我们把这个有可能变动的因素提取出来组成复数存储表示层：`real_part`、`img_part`、`magnitude`、`angle`、`make_from_real_img`、`make_from_mag_ang`。这一层看到的数据是结构体的两个成员`x`和`y`，或者`r`和`A`，如果改变了结构体的实现就要改变这一层函数的实现，但函数接口不改变，因此调用这一层函数接口的复数运算层也不需要改变。复数运算层看到的数据只是一个抽象的“复数”的概念，知道它有直角座标和极座标，可以调用复数存储表示层的函数得到这些座标。再往上看，其它使用复数运算的程序看到的数据是一个更为抽象的“复数”的概念，只知道它是一个数，像整数、小数一样可以加减乘除，甚至连它有直角座标和极座标也不需要知道。
+
+这里的复数存储表示层和复数运算层称为抽象层（Abstraction Layer），从底层往上层来看，复数越来越抽象了，把所有这些层组合在一起就是一个完整的系统。**组合使得系统可以任意复杂，而抽象使得系统的复杂性是可以控制的，任何改动都只局限在某一层，而不会波及整个系统**。
+
+> 1、在本节的基础上实现一个打印复数的函数，打印的格式是x+yi，如果实部或虚部为0则省略，例如：1.0、-2.0i、-1.0+2.0i、1.0-2.0i。最后编写一个`main`函数测试本节的所有代码。想一想这个打印函数应该属于上图中的哪一层？
+>
+> 2、实现一个用分子分母的格式来表示有理数的结构体`rational`以及相关的函数，`rational`结构体之间可以做加减乘除运算，运算的结果仍然是`rational`。测试代码如下：
+>
+> ```
+> int main(void)
+> {
+> 	struct rational a = make_rational(1, 8); /* a=1/8 */
+> 	struct rational b = make_rational(-1, 8); /* b=-1/8 */
+> 	print_rational(add_rational(a, b));
+> 	print_rational(sub_rational(a, b));
+> 	print_rational(mul_rational(a, b));
+> 	print_rational(div_rational(a, b));
+> 
+> 	return 0;
+> }
+> ```
+>
+> 注意要约分为最简分数，例如1/8和-1/8相减的打印结果应该是1/4而不是2/8，可以利用[第 3 节 “递归”](http://akaedu.github.io/book/ch05s03.html#func2.recursion)练习题中的Euclid算法来约分。在动手编程之前先思考一下这个问题实现了什么样的数据抽象，抽象层应该由哪些函数组成。
+
+1、
+
+```c
+#include <math.h>
+
+struct complex_struct {
+	double x, y;
+};
+
+double real_part(struct complex_struct z)
+{
+	return z.x;
+}
+
+double img_part(struct complex_struct z)
+{
+	return z.y;
+}
+
+double magnitude(struct complex_struct z)
+{
+	return sqrt(z.x * z.x + z.y * z.y);
+}
+
+double angle(struct complex_struct z)
+{
+	return atan2(z.y, z.x);
+}
+struct complex_struct make_from_real_img(double x, double y)
+{
+	struct complex_struct z;
+	z.x = x;
+	z.y = y;
+	return z;
+}
+
+struct complex_struct make_from_mag_ang(double r, double A)
+{
+	struct complex_struct z;
+	z.x = r * cos(A);
+	z.y = r * sin(A);
+	return z;
+}
+struct complex_struct add_complex(struct complex_struct z1, struct complex_struct z2)
+{
+	return make_from_real_img(real_part(z1) + real_part(z2),
+				  img_part(z1) + img_part(z2));
+}
+
+struct complex_struct sub_complex(struct complex_struct z1, struct complex_struct z2)
+{
+	return make_from_real_img(real_part(z1) - real_part(z2),
+				  img_part(z1) - img_part(z2));
+}
+
+struct complex_struct mul_complex(struct complex_struct z1, struct complex_struct z2)
+{
+	return make_from_mag_ang(magnitude(z1) * magnitude(z2),
+				 angle(z1) + angle(z2));
+}
+
+struct complex_struct div_complex(struct complex_struct z1, struct complex_struct z2)
+{
+	return make_from_mag_ang(magnitude(z1) / magnitude(z2),
+				 angle(z1) - angle(z2));
+}
+void print_complex(struct complex_struct z1){
+    if(z1.x != 0.0){
+        printf("%lf",z1.x);
+        if(z1.y > 0.0){
+            printf("+");
+        }
+    }
+    if(z1.y != 0.0){
+            printf("%lfi\n",z1.y);
+        }
 }
 ```
 
