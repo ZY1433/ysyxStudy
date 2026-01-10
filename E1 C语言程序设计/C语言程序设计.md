@@ -1306,6 +1306,10 @@ struct complex_struct make_from_mag_ang(double r, double A)
 
 虽然结构体`complex_struct`的存储表示做了这样的改动，`add_complex`、`sub_complex`、`mul_complex`、`div_complex`这几个复数运算的函数却不需要做任何改动，仍然可以用，原因在于这几个函数只把结构体`complex_struct`当作一个整体来使用，而没有直接访问它的成员，因此也不依赖于它有哪些成员。
 
+![image-20260110170859711](C:\Users\ZHANGYANG\AppData\Roaming\Typora\typora-user-images\image-20260110170859711.png)
+
+
+
 在我们的复数运算程序中，复数有可能用直角座标或极座标来表示，我们把这个有可能变动的因素提取出来组成复数存储表示层：`real_part`、`img_part`、`magnitude`、`angle`、`make_from_real_img`、`make_from_mag_ang`。这一层看到的数据是结构体的两个成员`x`和`y`，或者`r`和`A`，如果改变了结构体的实现就要改变这一层函数的实现，但函数接口不改变，因此调用这一层函数接口的复数运算层也不需要改变。复数运算层看到的数据只是一个抽象的“复数”的概念，知道它有直角座标和极座标，可以调用复数存储表示层的函数得到这些座标。再往上看，其它使用复数运算的程序看到的数据是一个更为抽象的“复数”的概念，只知道它是一个数，像整数、小数一样可以加减乘除，甚至连它有直角座标和极座标也不需要知道。
 
 这里的复数存储表示层和复数运算层称为抽象层（Abstraction Layer），从底层往上层来看，复数越来越抽象了，把所有这些层组合在一起就是一个完整的系统。**组合使得系统可以任意复杂，而抽象使得系统的复杂性是可以控制的，任何改动都只局限在某一层，而不会波及整个系统**。
@@ -1334,6 +1338,7 @@ struct complex_struct make_from_mag_ang(double r, double A)
 
 ```c
 #include <math.h>
+#include <stdio.h>
 
 struct complex_struct {
 	double x, y;
@@ -1397,15 +1402,360 @@ struct complex_struct div_complex(struct complex_struct z1, struct complex_struc
 				 angle(z1) - angle(z2));
 }
 void print_complex(struct complex_struct z1){
-    if(z1.x != 0.0){
+    if(real_part(z1) != 0.0){
         printf("%lf",z1.x);
-        if(z1.y > 0.0){
+        if(img_part(z1) > 0.0){
             printf("+");
         }
     }
     if(z1.y != 0.0){
-            printf("%lfi\n",z1.y);
-        }
+        printf("%lfi\n",img_part(z1));
+    } else {
+    	printf("\n");
+	}
+}
+int main(void) {
+    struct complex_struct z1 = make_from_real_img(1,2);
+    print_complex(z1);
+    struct complex_struct z2 = make_from_real_img(1,-2);
+    print_complex(z2);
+    struct complex_struct z3 = add_complex(z1,z2);
+    print_complex(z3);
+    struct complex_struct z4 = sub_complex(z1,z2);
+    print_complex(z4);
+    struct complex_struct z5 = mul_complex(z1,z2);
+    print_complex(z5);
+    struct complex_struct z6 = div_complex(z1,z2);
+    print_complex(z6);
+    print_complex(z6);
+    return 0;
 }
 ```
 
+![image-20260110170536218](C:\Users\ZHANGYANG\AppData\Roaming\Typora\typora-user-images\image-20260110170536218.png)
+
+打印函数应该在图里的最高层，或者说在负数运算层也不是不行
+
+2、
+
+这个函数实现了分数存储和分数运算的抽象，我们在调用时就只需要调用对应函数即可，不需要修改各个运算的内部实现了
+
+有make_rational用于存储一个分数，剩下的就是加减乘除了，以及对分数的输出了
+
+```c
+#include<stdio.h>
+#include<math.h>
+
+
+struct rational {
+	int a,b;
+};
+
+int get_numerator(struct rational r){
+	return r.a;
+}
+
+int get_denominator(struct rational r){
+	return r.b;
+}
+
+struct rational make_rational(int a, int b) {
+	struct rational r;
+	r.a = a;
+	r.b = b;
+	return r;
+}
+
+int GCD(int a, int b){
+    a = abs(a);
+    b = abs(b);
+    if(a == 0 || b == 0){
+    	return 0;
+	}
+	int c = a%b;
+    while(c != 0){
+        a = b;
+        b = c;
+        c = a%b;
+    }
+    return b;
+}
+
+int LCM(int a, int b){
+	return a*b/GCD(a,b);
+}
+
+struct rational add_rational(struct rational a, struct rational b) {
+	int denominator = LCM(get_denominator(a),get_denominator(b));//通分后的分母 
+	int numerator_a = get_numerator(a) * denominator / get_denominator(a);
+	int numerator_b = get_numerator(b) * denominator / get_denominator(b);
+	int numerator = numerator_a + numerator_b;
+	int gcd = GCD(numerator,denominator);
+	if(gcd != 0){
+		numerator = numerator / gcd;
+		denominator = denominator / gcd;
+	} else {
+		numerator = 0;
+	}
+	
+	return make_rational(numerator,denominator);
+}
+
+struct rational sub_rational(struct rational a, struct rational b) {
+	int denominator = LCM(get_denominator(a),get_denominator(b));//通分后的分母 
+	int numerator_a = get_numerator(a) * denominator / get_denominator(a);
+	int numerator_b = get_numerator(b) * denominator / get_denominator(b);
+	int numerator = numerator_a - numerator_b;
+	int gcd = GCD(numerator,denominator);
+	if(gcd != 0){
+		numerator = numerator / gcd;
+		denominator = denominator / gcd;
+	} else {
+		numerator = 0;
+	}
+	
+	return make_rational(numerator,denominator);
+}
+
+struct rational mul_rational(struct rational a, struct rational b) {
+	int denominator = get_denominator(a) * get_denominator(b);//通分后的分母 
+	int numerator = get_numerator(a) * get_numerator(b);
+	int gcd = GCD(numerator,denominator);
+	if(gcd != 0){
+		numerator = numerator / gcd;
+		denominator = denominator / gcd;
+	} else {
+		numerator = 0;
+	}
+	
+	return make_rational(numerator,denominator);
+}
+
+struct rational div_rational(struct rational a, struct rational b) {
+	int denominator = get_denominator(a) * get_numerator(b);
+	int numerator = get_numerator(a) * get_denominator(b);
+	int gcd = GCD(numerator,denominator);
+	if(gcd != 0){
+		numerator = numerator / gcd;
+		denominator = denominator / gcd;
+	} else {
+		numerator = 0;
+	}
+	
+	return make_rational(numerator,denominator);
+}
+
+void print_rational(struct rational r){
+	if(get_numerator(r) != 0 && abs(get_denominator(r)) != 1){
+		printf("%d/%d\n",get_numerator(r),get_denominator(r));
+	} else {
+		printf("%d\n",get_numerator(r) * get_denominator(r));
+	}
+	
+}
+
+int main(void)
+{
+	struct rational a = make_rational(1, 8); /* a=1/8 */
+	struct rational b = make_rational(-1, 8); /* b=-1/8 */
+	print_rational(add_rational(a, b));
+	print_rational(sub_rational(a, b));
+	print_rational(mul_rational(a, b));
+	print_rational(div_rational(a, b));
+
+	return 0;
+}
+```
+
+![image-20260110175259798](C:\Users\ZHANGYANG\AppData\Roaming\Typora\typora-user-images\image-20260110175259798.png)
+
+## 3. 数据类型标志
+
+这里介绍另一种办法，`complex_struct`结构体由一个数据类型标志和两个浮点数组成，如果数据类型标志为0，那么两个浮点数就表示直角座标，如果数据类型标志为1，那么两个浮点数就表示极座标。这样，直角座标和极座标的数据都可以适配（Adapt）到`complex_struct`结构体中，无需转换和损失精度：
+
+```c
+enum coordinate_type { RECTANGULAR, POLAR };
+struct complex_struct {
+	enum coordinate_type t;
+	double a, b;
+};
+```
+
+`enum`关键字的作用和`struct`关键字类似，把`coordinate_type`这个标识符定义为一个Tag，`struct complex_struct`表示一个结构体类型，而`enum coordinate_type`表示一个枚举（Enumeration）类型。枚举类型的成员是常量，它们的值由编译器自动分配，例如定义了上面的枚举类型之后，`RECTANGULAR`就表示常量0，`POLAR`表示常量1。如果不希望从0开始分配，可以这样定义：
+
+```c
+enum coordinate_type { RECTANGULAR = 1, POLAR };
+```
+
+这样，`RECTANGULAR`就表示常量1，而`POLAR`表示常量2。枚举常量也是一种整型，其值在编译时确定，因此也可以出现在常量表达式中，可以用于初始化全局变量或者作为`case`分支的判断条件。
+
+一点需要注意，虽然结构体的成员名和变量名不在同一命名空间中，但**枚举的成员名却和变量名在同一命名空间中**，所以会出现命名冲突。例如这样是不合法的：
+
+```c
+int main(void)
+{
+	enum coordinate_type { RECTANGULAR = 1, POLAR };
+	int RECTANGULAR;
+	printf("%d %d\n", RECTANGULAR, POLAR);
+	return 0;
+}
+```
+
+`complex_struct`结构体的格式变了，就需要修改复数存储表示层的函数，但只要保持函数接口不变就不会影响到上层函数。例如：
+
+```c
+struct complex_struct make_from_real_img(double x, double y)
+{
+	struct complex_struct z;
+	z.t = RECTANGULAR;
+	z.a = x;
+	z.b = y;
+	return z;
+}
+
+struct complex_struct make_from_mag_ang(double r, double A)
+{
+	struct complex_struct z;
+	z.t = POLAR;
+	z.a = r;
+	z.b = A;
+	return z;
+}
+```
+
+> 1、本节只给出了`make_from_real_img`和`make_from_mag_ang`函数的实现，请读者自己实现`real_part`、`img_part`、`magnitude`、`angle`这些函数。
+>
+> 2、编译运行下面这段程序：
+>
+> ```c
+> #include <stdio.h>
+> 
+> enum coordinate_type { RECTANGULAR = 1, POLAR };
+> 
+> int main(void)
+> {
+> 	int RECTANGULAR;
+> 	printf("%d %d\n", RECTANGULAR, POLAR);
+> 	return 0;
+> }
+> ```
+>
+> 结果是什么？并解释一下为什么是这样的结果。
+
+1、
+
+```c
+enum coordinate_type { RECTANGULAR, POLAR };
+struct complex_struct {
+	enum coordinate_type t;
+	double a, b;
+};
+
+struct complex_struct make_from_real_img(double x, double y)
+{
+	struct complex_struct z;
+	z.t = RECTANGULAR;
+	z.a = x;
+	z.b = y;
+	return z;
+}
+
+struct complex_struct make_from_mag_ang(double r, double A)
+{
+	struct complex_struct z;
+	z.t = POLAR;
+	z.a = r;
+	z.b = A;
+	return z;
+}
+
+double real_part(struct complex_struct z)
+{
+    if(z.t == RECTANGULAR){
+        return z.a;
+    } else {
+        return z.a * cos(z.b);
+    }
+	
+}
+
+double img_part(struct complex_struct z)
+{
+    if(z.t == RECTANGULAR){
+		return z.b;
+    } else {
+        retrun z.a * sin(z.b);
+    }
+    
+}
+
+double magnitude(struct complex_struct z)
+{
+    if(z.t == RECTANGULAR){
+		return sqrt(z.a * z.a + z.b * z.b);
+    } else {
+        return z.a;
+    }
+}
+
+double angle(struct complex_struct z)
+{
+    if(z.t == RECTANGULAR){
+		return atan2(z.b, z.a);
+    } else {
+        return z.b;
+    }
+    
+}
+```
+
+2、
+
+![image-20260110230237033](C:\Users\ZHANGYANG\AppData\Roaming\Typora\typora-user-images\image-20260110230237033.png)
+
+输出为0 2，2很好理解，就是枚举变量里的POLAR的值2，这个0则是main函数里定义的RECTANGULAR的值(我其实感觉不一定是0，只是刚好是0而已)，相当于枚举变量是全局变量，main里的是局部变量，所以局部变量更优先，如果将局部变量注释掉就会变成输出1 2
+
+![image-20260110230801205](C:\Users\ZHANGYANG\AppData\Roaming\Typora\typora-user-images\image-20260110230801205.png)
+
+## 4. 嵌套结构体
+
+结构体也是一种递归定义：结构体的成员具有某种数据类型，而结构体本身也是一种数据类型。换句话说，结构体的成员可以是另一个结构体，即结构体可以嵌套定义。例如我们在复数的基础上定义复平面上的线段：
+
+```c
+struct segment {
+	struct complex_struct start;
+	struct complex_struct end;
+};
+```
+
+从[第 1 节 “复合类型与结构体”](http://akaedu.github.io/book/ch07s01.html#struct.intro)讲的Initializer的语法可以看出，Initializer也可以嵌套，因此嵌套结构体可以嵌套地初始化，例如：
+
+```c
+struct segment s = {{ 1.0, 2.0 }, { 4.0, 6.0 }};
+```
+
+也可以平坦（Flat）地初始化。例如：
+
+```c
+struct segment s = { 1.0, 2.0, 4.0, 6.0 };
+```
+
+甚至可以把两种方式混合使用（这样可读性很差，应该避免）：
+
+```c
+struct segment s = {{ 1.0, 2.0 }, 4.0, 6.0 };
+```
+
+利用C99的新特性也可以做Memberwise Initialization，例如[[15](http://akaedu.github.io/book/ch07s04.html#ftn.id2731613)]：
+
+```c
+struct segment s = { .start.x = 1.0, .end.x = 2.0 };
+```
+
+访问嵌套结构体的成员要用到多个.运算符，例如：
+
+```c
+s.start.t = RECTANGULAR;
+s.start.a = 1.0;
+s.start.b = 2.0;
+```
