@@ -2371,3 +2371,489 @@ int main(void)
 感觉是用了同模的思想，但是其实不太知道为什么一定是这个式子
 
 我感觉(man - computer + 3) % 3也可以啊，0平局，1赢，2输也可以吧
+
+# 第 9 章 编码风格
+
+## 1. 缩进和空白
+
+关于空白字符并没有特别规定，因为基本上所有的C代码风格对于空白字符的规定都差不多，主要有以下几条。
+
+1、关键字`if`、`while`、`for`与其后的控制表达式的(括号之间插入一个空格分隔，但括号内的表达式应紧贴括号。例如：
+
+```
+while␣(1);
+```
+
+2、双目运算符的两侧各插入一个空格分隔，单目运算符和操作数之间不加空格，
+
+例如`i␣=␣i␣+␣1`、`++i`、`!(i␣<␣1)`、`-x`、`&a[1]`等。
+
+3、后缀运算符和操作数之间也不加空格，例如取结构体成员`s.a`、函数调用`foo(arg1)`、取数组成员`a[i]`。
+
+4、,号和;号之后要加空格，这是英文的书写习惯，例如`for␣(i␣=␣1;␣i␣<␣10;␣i++)`、`foo(arg1,␣arg2)`。
+
+5、以上关于双目运算符和后缀运算符的规则并没有严格要求，有时候为了突出优先级也可以写得更紧凑一些，例如`for␣(i=1;␣i<10;␣i++)`、`distance␣=␣sqrt(x*x␣+␣y*y)`等。但是省略的空格一定不要误导了读代码的人，例如`a||b␣&&␣c`很容易让人理解成错误的优先级。
+
+6、由于UNIX系统标准的字符终端是24行80列的，**接近或大于80个字符的较长语句要折行写**，折行后用空格和上面的表达式或参数对齐，例如：
+
+```c
+if␣(sqrt(x*x␣+␣y*y)␣>␣5.0
+    &&␣x␣<␣0.0
+    &&␣y␣>␣0.0)
+```
+
+再比如：
+
+```c
+foo(sqrt(x*x␣+␣y*y),
+    a[i-1]␣+␣b[i-1]␣+␣c[i-1])
+```
+
+7、较长的字符串可以断成多个字符串然后分行书写，例如：
+
+```c
+printf("This is such a long sentence that "
+       "it cannot be held within a line\n");
+```
+
+C编译器会自动把相邻的多个字符串接在一起，以上两个字符串相当于一个字符串`"This is such a long sentence that it cannot be held within a line\n"`。
+
+8、有的人喜欢在变量定义语句中用Tab字符，使变量名对齐，这样看起来很美观。
+
+```c
+       →int    →a, b;
+       →double →c;
+```
+
+内核代码风格关于缩进的规则有以下几条。
+
+1、要用缩进体现出语句块的层次关系，**使用Tab字符缩进，不能用空格代替Tab**。在标准的字符终端上一个Tab看起来是8个空格的宽度，如果你的文本编辑器可以设置Tab的显示宽度是几个空格，建议也设成8，这样大的缩进使代码看起来非常清晰。如果有的行用空格做缩进，有的行用Tab做缩进，甚至空格和Tab混用，那么一旦改变了文本编辑器的Tab显示宽度就会看起来非常混乱，所以内核代码风格规定只能用Tab做缩进，不能用空格代替Tab。
+
+2、`if/else`、`while`、`do/while`、`for`、`switch`这些可以带语句块的语句，语句块的{或}应该和关键字写在同一行，用空格隔开，而不是单独占一行。例如应该这样写：
+
+```c
+if␣(...)␣{
+       →语句列表
+}␣else␣if␣(...)␣{
+       →语句列表
+}
+```
+
+但很多人习惯这样写：
+
+```c
+if␣(...)
+{
+       →语句列表
+}
+else␣if␣(...)
+{
+       →语句列表
+}
+```
+
+内核的写法和[[K&R\]](http://akaedu.github.io/book/bi01.html#bibli.kr)一致，好处是不必占太多行，使得一屏能显示更多代码。这两种写法用得都很广泛，只**要在同一个项目中能保持统一就可以了。**
+
+3、函数定义的{和}单独占一行，这一点和语句块的规定不同，例如：
+
+```c
+int␣foo(int␣a,␣int␣b)
+{
+       →语句列表
+}
+```
+
+4、`switch`和语句块里的`case`、`default`对齐写，也就是说语句块里的`case`、`default`标号相对于`switch`不往里缩进，但标号下的语句要往里缩进。例如：
+
+```c
+      →switch␣(c)␣{
+      →case 'A':
+      →       →语句列表
+      →case 'B':
+      →       →语句列表
+      →default:
+      →       →语句列表
+      →}
+```
+
+用于`goto`语句的自定义标号应该顶头写不缩进，而不管标号下的语句缩进到第几层。
+
+5、代码中每个逻辑段落之间应该用一个空行分隔开。例如每个函数定义之间应该插入一个空行，头文件、全局变量定义和函数定义之间也应该插入空行，例如：
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+int g;
+double h;
+
+int foo(void)
+{
+       →语句列表
+}
+
+int bar(int a)
+{
+       →语句列表
+}
+
+int main(void)
+{
+       →语句列表
+}
+```
+
+6、一个函数的语句列表如果很长，也可以根据相关性分成若干组，用空行分隔。这条规定不是严格要求，通常把变量定义组成一组，后面加空行，`return`语句之前加空行，例如：
+
+```c
+int main(void)
+{
+       →int    →a, b;
+       →double →c;
+
+       →语句组1
+
+       →语句组2
+
+       →return 0;
+}
+```
+
+## 2. 注释
+
+单行注释应采用`/*␣comment␣*/`的形式，用空格把界定符和文字分开。多行注释最常见的是这种形式：
+
+```c
+/*
+␣*␣Multi-line
+␣*␣comment
+␣*/
+```
+
+使用注释的场合主要有以下几种。
+
+1、整个源文件的顶部注释。说明此模块的相关信息，例如文件名、作者和版本历史等，顶头写不缩进。例如内核源代码目录下的`kernel/sched.c`文件的开头：
+
+```c
+/*
+ *  kernel/sched.c
+ *
+ *  Kernel scheduler and related syscalls
+ *
+ *  Copyright (C) 1991-2002  Linus Torvalds
+ *
+ *  1996-12-23  Modified by Dave Grothe to fix bugs in semaphores and
+ *              make semaphores SMP safe
+ *  1998-11-19  Implemented schedule_timeout() and related stuff
+ *              by Andrea Arcangeli
+ *  2002-01-04  New ultra-scalable O(1) scheduler by Ingo Molnar:
+ *              hybrid priority-list and round-robin design with
+ *              an array-switch method of distributing timeslices
+ *              and per-CPU runqueues.  Cleanups and useful suggestions
+ *              by Davide Libenzi, preemptible kernel bits by Robert Love.
+ *  2003-09-03  Interactivity tuning by Con Kolivas.
+ *  2004-04-02  Scheduler domains code by Nick Piggin
+ */
+```
+
+2、函数注释。说明此函数的功能、参数、返回值、错误码等，**写在函数定义上侧**，和此函数定义之间不留空行，顶头写不缩进。
+
+3、相对独立的语句组注释。对这一组语句做特别说明，**写在语句组上侧**，和此语句组之间不留空行，与当前语句组的缩进一致。
+
+4、代码行右侧的简短注释。对当前代码行做特别说明，一般为单行注释，和代码之间至少用一个空格隔开，一个源文件中所有的右侧注释最好能上下对齐。尽管[例 2.1 “带更多注释的Hello World”](http://akaedu.github.io/book/ch02s01.html#expr.morehelloworld)讲过注释可以穿插在一行代码中间，但不建议这么写。内核源代码目录下的`lib/radix-tree.c`文件中的一个函数包含了上述三种注释：
+
+```c
+/**
+ *      radix_tree_insert    -    insert into a radix tree
+ *      @root:          radix tree root
+ *      @index:         index key
+ *      @item:          item to insert
+ *
+ *      Insert an item into the radix tree at position @index.
+ */
+int radix_tree_insert(struct radix_tree_root *root,
+                        unsigned long index, void *item)
+{
+        struct radix_tree_node *node = NULL, *slot;
+        unsigned int height, shift;
+        int offset;
+        int error;
+
+        /* Make sure the tree is high enough.  */
+        if ((!index && !root->rnode) ||
+                        index > radix_tree_maxindex(root->height)) {
+                error = radix_tree_extend(root, index);
+                if (error)
+                        return error;
+        }
+
+        slot = root->rnode;
+        height = root->height;
+        shift = (height-1) * RADIX_TREE_MAP_SHIFT;
+
+        offset = 0;                     /* uninitialised var warning */
+        do {
+                if (slot == NULL) {
+                        /* Have to add a child node.  */
+                        if (!(slot = radix_tree_node_alloc(root)))
+                                return -ENOMEM;
+                        if (node) {
+                                node->slots[offset] = slot;
+                                node->count++;
+                        } else
+                                root->rnode = slot;
+                }
+
+                /* Go a level down */
+                offset = (index >> shift) & RADIX_TREE_MAP_MASK;
+                node = slot;
+                slot = node->slots[offset];
+                shift -= RADIX_TREE_MAP_SHIFT;
+                height--;
+        } while (height > 0);
+
+        if (slot != NULL)
+                return -EEXIST;
+
+        BUG_ON(!node);
+        node->count++;
+        node->slots[offset] = item;
+        BUG_ON(tag_get(node, 0, offset));
+        BUG_ON(tag_get(node, 1, offset));
+
+        return 0;
+}
+```
+
+[[CodingStyle\]](http://akaedu.github.io/book/bi01.html#bibli.codingstyle)中特别指出，**函数内的注释要尽可能少用**。写注释主要是为了说明你的代码“能做什么”（比如函数接口定义），而不是为了说明“怎样做”，只要代码写得足够清晰，“怎样做”是一目了然的，如果你需要用注释才能解释清楚，那就表示你的代码可读性很差，除非是特别需要提醒注意的地方才使用函数内注释。
+
+5、复杂的结构体定义比函数更需要注释。例如内核源代码目录下的`kernel/sched.c`文件中定义了这样一个结构体：
+
+```c
+/*
+ * This is the main, per-CPU runqueue data structure.
+ *
+ * Locking rule: those places that want to lock multiple runqueues
+ * (such as the load balancing or the thread migration code), lock
+ * acquire operations must be ordered by ascending &runqueue.
+ */
+struct runqueue {
+        spinlock_t lock;
+
+        /*
+         * nr_running and cpu_load should be in the same cacheline because
+         * remote CPUs use both these fields when doing load calculation.
+         */
+        unsigned long nr_running;
+#ifdef CONFIG_SMP
+        unsigned long cpu_load[3];
+#endif
+        unsigned long long nr_switches;
+
+        /*
+         * This is part of a global counter where only the total sum
+         * over all CPUs matters. A task can increase this counter on
+         * one CPU and if it got migrated afterwards it may decrease
+         * it on another CPU. Always updated under the runqueue lock:
+         */
+        unsigned long nr_uninterruptible;
+
+        unsigned long expired_timestamp;
+        unsigned long long timestamp_last_tick;
+        task_t *curr, *idle;
+        struct mm_struct *prev_mm;
+        prio_array_t *active, *expired, arrays[2];
+        int best_expired_prio;
+        atomic_t nr_iowait;
+
+#ifdef CONFIG_SMP
+        struct sched_domain *sd;
+
+        /* For active balancing */
+        int active_balance;
+        int push_cpu;
+
+        task_t *migration_thread;
+        struct list_head migration_queue;
+        int cpu;
+#endif
+
+#ifdef CONFIG_SCHEDSTATS
+        /* latency stats */
+        struct sched_info rq_sched_info;
+
+        /* sys_sched_yield() stats */
+        unsigned long yld_exp_empty;
+        unsigned long yld_act_empty;
+        unsigned long yld_both_empty;
+        unsigned long yld_cnt;
+
+        /* schedule() stats */
+        unsigned long sched_switch;
+        unsigned long sched_cnt;
+        unsigned long sched_goidle;
+
+        /* try_to_wake_up() stats */
+        unsigned long ttwu_cnt;
+        unsigned long ttwu_local;
+#endif
+};
+```
+
+6、复杂的宏定义和变量声明也需要注释。例如内核源代码目录下的`include/linux/jiffies.h`文件中的定义：
+
+```c
+/* TICK_USEC_TO_NSEC is the time between ticks in nsec assuming real ACTHZ and  */
+/* a value TUSEC for TICK_USEC (can be set bij adjtimex)                */
+#define TICK_USEC_TO_NSEC(TUSEC) (SH_DIV (TUSEC * USER_HZ * 1000, ACTHZ, 8))
+
+/* some arch's have a small-data section that can be accessed register-relative
+ * but that can only take up to, say, 4-byte variables. jiffies being part of
+ * an 8-byte variable may not be correctly accessed unless we force the issue
+ */
+#define __jiffy_data  __attribute__((section(".data")))
+
+/*
+ * The 64-bit value is not volatile - you MUST NOT read it
+ * without sampling the sequence number in xtime_lock.
+ * get_jiffies_64() will do this for you as appropriate.
+ */
+extern u64 __jiffy_data jiffies_64;
+extern unsigned long volatile __jiffy_data jiffies;
+```
+
+## 3. 标识符命名
+
+标识符命名应遵循以下原则：
+
+1. 标识符命名要清晰明了，可以使用完整的单词和易于理解的缩写。短的单词可以通过去元音形成缩写，较长的单词可以取单词的头几个字母形成缩写。看别人的代码看多了就可以总结出一些缩写惯例，例如`count`写成`cnt`，`block`写成`blk`，`length`写成`len`，`window`写成`win`，`message`写成`msg`，`number`写成`nr`，`temporary`可以写成`temp`，也可以进一步写成`tmp`，最有意思的是`internationalization`写成`i18n`，词根`trans`经常缩写成`x`，例如`transmit`写成`xmt`。我就不多举例了，请读者在看代码时自己注意总结和积累。
+
+2. 内核编码风格规定**变量、函数和类型采用全小写加下划线**的方式命名，**常量（比如宏定义和枚举常量）采用全大写加下划线**的方式命名，比如上一节举例的函数名`radix_tree_insert`、类型名`struct radix_tree_root`、常量名`RADIX_TREE_MAP_SHIFT`等。
+
+   微软发明了一种变量命名法叫匈牙利命名法（Hungarian notation），在变量名中用前缀表示类型，例如`iCnt`（i表示int）、`pMsg`（p表示pointer）、`lpszText`（lpsz表示long pointer to a zero-ended string）等。Linus在[[CodingStyle\]](http://akaedu.github.io/book/bi01.html#bibli.codingstyle)中毫不客气地讽刺了这种写法：“Encoding the type of a function into the name (so-called Hungarian notation) is brain damaged - the compiler knows the types anyway and can check those, and it only confuses the programmer. No wonder MicroSoft makes buggy programs.”代码风格本来就是一个很有争议的问题，如果你接受本章介绍的内核编码风格（也是本书所有范例代码的风格），就不要使用大小写混合的变量命名方式[[19](http://akaedu.github.io/book/ch09s03.html#ftn.id2738703)]，更不要使用匈牙利命名法。
+
+3. **全局变量和全局函数的命名一定要详细**，不惜多用几个单词多写几个下划线，例如函数名`radix_tree_insert`，因为它们在整个项目的许多源文件中都会用到，必须让使用者明确这个变量或函数是干什么用的。局部变量和只在一个源文件中调用的内部函数的命名可以简略一些，但不能太短。尽量不要使用单个字母做变量名，只有一个例外：用`i`、`j`、`k`做循环变量是可以的。
+
+4. 针对中国程序员的一条特别规定：**禁止用汉语拼音做标识符**，可读性极差。
+
+## 4. 函数
+
+每个函数都应该设计得尽可能简单，简单的函数才容易维护。应遵循以下原则：
+
+1. 实现**一个函数只是为了做好一件事情**，不要把函数设计成用途广泛、面面俱到的，这样的函数肯定会超长，而且往往不可重用，维护困难。
+2. **函数内部的缩进层次不宜过多**，一般以少于4层为宜。如果缩进层次太多就说明设计得太复杂了，应考虑分割成更小的函数（Helper Function）来调用。
+3. **函数不要写得太长**，建议在24行的标准终端上不超过两屏，太长会造成阅读困难，如果一个函数超过两屏就应该考虑分割函数了。[[CodingStyle\]](http://akaedu.github.io/book/bi01.html#bibli.codingstyle)中特别说明，如果一个函数在概念上是简单的，只是长度很长，这倒没关系。例如函数由一个大的`switch`组成，其中有非常多的`case`，这是可以的，因为各`case`分支互不影响，整个函数的复杂度只等于其中一个`case`的复杂度，这种情况很常见，例如TCP协议的状态机实现。
+4. 执行函数就是执行一个动作，**函数名通常应包含动词**，例如`get_current`、`radix_tree_insert`。
+5. 比较**重要的函数定义上侧必须加注释**，说明此函数的功能、参数、返回值、错误码等。
+6. 另一种度量函数复杂度的办法是看有多少个局部变量，5到10个局部变量已经很多了，再多就很难维护了，应该考虑分割成多个函数。
+
+## 5. indent工具
+
+`indent`工具可以把代码格式化成某种风格
+
+```bash
+$ indent -kr -i8 main.c 
+```
+
+`-kr`选项表示K&R风格，`-i8`表示缩进8个空格的长度。如果没有指定`-nut`选项，则每8个缩进空格会自动用一个Tab代替。注意`indent`命令会直接修改原文件，而不是打印到屏幕上或者输出到另一个文件，这一点和很多UNIX命令不同。可以看出，`-kr -i8`两个选项格式化出来的代码已经很符合本章介绍的代码风格了，添加了必要的缩进和空白，较长的代码行也会自动折行。美中不足的是没有添加适当的空行，因为`indent`工具也不知道哪几行代码在逻辑上是一组的，空行还是要自己动手添，当然原有的空行肯定不会被`indent`删去的。
+
+如果你采纳本章介绍的内核编码风格，基本上`-kr -i8`这两个参数就够用了。`indent`工具也有支持其它编码风格的选项，具体请参考Man Page。有时候`indent`工具的确非常有用，比如某个项目中途决定改变编码风格（这很少见），或者往某个项目中添加的几个代码文件来自另一个编码风格不同的项目，**但绝不能因为有了`indent`工具就肆无忌惮**，一开始把代码写得乱七八糟，最后再依靠`indent`去清理。
+
+# 第 11 章 排序与查找
+
+## 1. 算法的概念
+
+**算法（Algorithm）是将一组输入转化成一组输出的一系列计算步骤，其中每个步骤必须能在有限时间内完成。**比如[第 3 节 “递归”](http://akaedu.github.io/book/ch05s03.html#func2.recursion)习题1中的Euclid算法，输入是两个正整数，输出是它们的最大公约数，计算步骤是取模、比较等操作，这个算法一定能在有限的步骤和时间内完成（想一想为什么？）。再比如将一组数从小到大排序，输入是一组原始数据，输出是排序之后的数据，计算步骤包括比较、移动数据等操作。
+
+不正确的算法有两种可能，一是对于该问题的某些输入，该算法会无限计算下去，不会终止，二是对于该问题的某些输入，该算法终止时输出的是错误的结果。有时候不正确的算法也是有用的，如果对于某个问题寻求正确的算法很困难，而某个不正确的算法可以在有限时间内终止，并且能把误差控制在一定范围内，那么这样的算法也是有实际意义的。例如有时候寻找最优解的开销很大，往往会选择能给出次优解的算法。
+
+## 2. 插入排序
+
+每次选择1个数，将其插入到前面已经排好序的部分的合适的位置，其余后移
+
+```c
+#include <stdio.h>
+
+#define LEN 5
+int a[LEN] = { 10, 5, 2, 4, 7 };
+
+void insertion_sort(void)
+{
+	int i, j, key;
+	for (j = 1; j < LEN; j++) {
+		printf("%d, %d, %d, %d, %d\n",
+		       a[0], a[1], a[2], a[3], a[4]);
+		key = a[j];
+		i = j - 1;
+		while (i >= 0 && a[i] > key) {
+			a[i+1] = a[i];
+			i--;
+		}
+		a[i+1] = key;
+	}
+	printf("%d, %d, %d, %d, %d\n",
+	       a[0], a[1], a[2], a[3], a[4]);
+}
+
+int main(void)
+{
+	insertion_sort();
+	return 0;
+}
+```
+
+如何严格证明这个算法是正确的？换句话说，只要反复执行该算法的`for`循环体，执行`LEN-1`次，就一定能把数组`a`排好序，而不管数组`a`的原始数据是什么，如何证明这一点呢？我们可以借助Loop Invariant的概念和数学归纳法来理解循环结构的算法，**假如某个判断条件满足以下三条准则，它就称为Loop Invariant**：
+
+1. 第一次执行循环体之前该判断条件为真。
+2. 如果“第N-1次循环之后（或者说第N次循环之前）该判断条件为真”这个前提可以成立，那么就有办法证明第N次循环之后该判断条件仍为真。
+3. 如果在所有循环结束后该判断条件为真，那么就有办法证明该算法正确地解决了问题。
+
+只要我们找到这个Loop Invariant，就可以证明一个循环结构的算法是正确的。上述插入排序算法的Loop Invariant是这样的判断条件：*第`j`次循环之前，子序列a[0..j-1]是排好序的*。在上面的打印结果中，我把子序列a[0..j-1]加粗表示。下面我们验证一下Loop Invariant的三条准则：
+
+1. 第一次执行循环之前，`j=1`，子序列a[0..j-1]只有一个元素`a[0]`，只有一个元素的序列显然是排好序的。
+2. 第`j`次循环之前，如果“子序列a[0..j-1]是排好序的”这个前提成立，现在要把`key=a[j]`插进去，按照该算法的步骤，把`a[j-1]`、`a[j-2]`、`a[j-3]`等等比`key`大的元素都依次往后移一个，直到找到合适的位置给`key`插入，就能证明循环结束时子序列a[0..j]是排好序的。就像插扑克牌一样，“手中已有的牌是排好序的”这个前提很重要，如果没有这个前提，就不能证明再插一张牌之后也是排好序的。
+3. 当循环结束时，`j=LEN`，如果“子序列a[0..j-1]是排好序的”这个前提成立，那就是说a[0..LEN-1]是排好序的，也就是说整个数组`a`的`LEN`个元素都排好序了。
+
+可见，有了这三条，就可以用数学归纳法证明这个循环是正确的。这和[第 3 节 “递归”](http://akaedu.github.io/book/ch05s03.html#func2.recursion)证明递归程序正确性的思想是一致的，这里的第一条就相当于递归的Base Case，第二条就相当于递归的递推关系。这再次说明了递归和循环是等价的。
+
+## 3. 算法的时间复杂度分析
+
+解决同一个问题可以有很多种算法，比较评价算法的好坏，一个重要的标准就是算法的时间复杂度。现在研究一下插入排序算法的执行时间，按照习惯，输入长度`LEN`以下用n表示。设循环中各条语句的执行时间分别是c1、c2、c3、c4、c5这样五个常数[[23](http://akaedu.github.io/book/ch11s03.html#ftn.id2745592)]：
+
+```c
+void insertion_sort(void)			执行时间
+{
+	int i, j, key;
+	for (j = 1; j < LEN; j++) {
+		key = a[j];				c1
+		i = j - 1;				c2
+		while (i >= 0 && a[i] > key) {
+			a[i+1] = a[i];		c3
+			i--;				c4
+		}
+		a[i+1] = key;			c5
+	}
+}
+```
+
+显然外层`for`循环的执行次数是n-1次，假设内层的`while`循环执行m次，则总的执行时间粗略估计是(n-1)\*(c1+c2+c5+m\*(c3+c4))。当然，`for`和`while`后面()括号中的赋值和条件判断的执行也需要时间，而我没有设一个常数来表示，这不影响我们的粗略估计。
+
+这里有一个问题，m不是个常数，也不取决于输入长度n，而是取决于具体的输入数据。在最好情况下，数组`a`的原始数据已经排好序了，`while`循环一次也不执行，总的执行时间是(c1+c2+c5)*n-(c1+c2+c5)，可以表示成an+b的形式，是n的线性函数（Linear Function）。那么在最坏情况（Worst Case）下又如何呢？所谓最坏情况是指数组`a`的原始数据正好是从大到小排好序的，请读者想一想为什么这是最坏情况，然后把上式中的m替换掉算一下执行时间是多少。
+
+最坏情况下，m依次是0，1，2.....n-1
+
+数组`a`的原始数据属于最好和最坏情况的都比较少见，如果原始数据是随机的，可称为平均情况（Average Case）。如果原始数据是随机的，那么每次循环将已排序的子序列a[1..j-1]与新插入的元素`key`相比较，子序列中平均都有一半的元素比`key`大而另一半比`key`小，请读者把上式中的m替换掉算一下执行时间是多少。最后的结论应该是：在最坏情况和平均情况下，总的执行时间都可以表示成an^2^+bn+c的形式，是n的二次函数（Quadratic Function）。
+
+在分析算法的时间复杂度时，我们更关心最坏情况而不是最好情况，理由如下：
+
+1. 最坏情况给出了算法执行时间的上界，我们可以确信，无论给什么输入，算法的执行时间都不会超过这个上界，这样为比较和分析提供了便利。
+2. 对于某些算法，最坏情况是最常发生的情况，例如在数据库中查找某个信息的算法，最坏情况就是数据库中根本不存在该信息，都找遍了也没有，而某些应用场合经常要查找一个信息在数据库中存在不存在。
+3. 虽然最坏情况是一种悲观估计，但是对于很多问题，平均情况和最坏情况的时间复杂度差不多，比如插入排序这个例子，平均情况和最坏情况的时间复杂度都是输入长度n的二次函数。
+
+比较两个多项式a~1~n+b~1~和a~2~n^2^+b~2~n+c~2~的值（n取正整数）可以得出结论：n的最高次指数是最主要的决定因素，常数项、低次幂项和系数都是次要的。比如100n+1和n^2^+1，虽然后者的系数小，当n较小时前者的值较大，但是当n>100时，后者的值就远远大于前者了。如果同一个问题可以用两种算法解决，其中一种算法的时间复杂度为线性函数，另一种算法的时间复杂度为二次函数，当问题的输入长度n足够大时，前者明显优于后者。因此我们可以用一种更粗略的方式表示算法的时间复杂度，把系数和低次幂项都省去，线性函数记作Θ(n)，二次函数记作Θ(n^2^)。
+
+Θ(g(n))表示和g(n)同一量级的一类函数，例如所有的二次函数f(n)都和g(n)=n^2^属于同一量级，都可以用Θ(n^2^)来表示，甚至有些不是二次函数的也和n^2^属于同一量级，例如2n^2^+3lgn。
+
+几种常见的时间复杂度函数按数量级从小到大的顺序依次是：Θ(lgn)，Θ(sqrt(n))，Θ(n)，Θ(nlgn)，Θ(n^2^)，Θ(n^3^)，Θ(2^n^)，Θ(n!)。
+
+除了Θ-notation之外，表示算法的时间复杂度常用的还有一种Big-O notation。我们知道插入排序在最坏情况和平均情况下时间复杂度是Θ(n^2^)，在最好情况下是Θ(n)，数量级比Θ(n^2^)要小，那么总结起来在各种情况下插入排序的时间复杂度是O(n^2^)。**Θ的含义和“等于”类似，而大O的含义和“小于等于”类似**。
