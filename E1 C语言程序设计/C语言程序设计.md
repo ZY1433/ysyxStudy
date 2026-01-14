@@ -3399,3 +3399,171 @@ double mypow2(double x, int n){
 ```
 
 ![image-20260113235212666](Typara用到的图片/image-20260113235212666.png)
+
+# 第 12 章 栈与队列
+
+## 1. 数据结构的概念
+
+数据结构（Data Structure）是数据的组织方式。
+
+**算法+数据结构=程序**
+
+## 2. 堆栈
+
+在[第 3 节 “递归”](http://akaedu.github.io/book/ch05s03.html#func2.recursion)中我们已经对堆栈这种数据结构有了初步认识。堆栈是一组元素的集合，类似于数组，不同之处在于，数组可以按下标随机访问，这次访问`a[5]`下次可以访问`a[1]`，但是堆栈的访问规则被限制为Push和Pop两种操作，Push（入栈或压栈）向栈顶添加元素，Pop（出栈或弹出）则取出当前栈顶的元素，也就是说，只能访问栈顶元素而不能访问栈中其它元素。如果所有元素的类型相同，堆栈的存储也可以用数组来实现，访问操作可以通过函数接口提供。
+
+## 3. 深度优先搜索
+
+现在我们用堆栈解决一个有意思的问题，定义一个二维数组：
+
+```c
+int maze[5][5] = {
+	0, 1, 0, 0, 0,
+	0, 1, 0, 1, 0,
+	0, 0, 0, 0, 0,
+	0, 1, 1, 1, 0,
+	0, 0, 0, 1, 0,
+};
+```
+
+它表示一个迷宫，其中的1表示墙壁，0表示可以走的路，只能横着走或竖着走，不能斜着走，要求编程序找出从左上角到右下角的路线。程序如下：
+
+
+
+**例 12.3. 用深度优先搜索解迷宫问题**
+
+```c
+#include <stdio.h>
+
+#define MAX_ROW 5
+#define MAX_COL 5
+
+struct point { int row, col; } stack[512];
+int top = 0;
+
+void push(struct point p)
+{
+	stack[top++] = p;
+}
+
+struct point pop(void)
+{
+	return stack[--top];
+}
+
+int is_empty(void)
+{
+	return top == 0;
+}
+
+int maze[MAX_ROW][MAX_COL] = {
+	0, 1, 0, 0, 0,
+	0, 1, 0, 1, 0,
+	0, 0, 0, 0, 0,
+	0, 1, 1, 1, 0,
+	0, 0, 0, 1, 0,
+};
+
+void print_maze(void)
+{
+	int i, j;
+	for (i = 0; i < MAX_ROW; i++) {
+		for (j = 0; j < MAX_COL; j++)
+			printf("%d ", maze[i][j]);
+		putchar('\n');
+	}
+	printf("*********\n");
+}
+
+struct point predecessor[MAX_ROW][MAX_COL] = {
+	{{-1,-1}, {-1,-1}, {-1,-1}, {-1,-1}, {-1,-1}},
+	{{-1,-1}, {-1,-1}, {-1,-1}, {-1,-1}, {-1,-1}},
+	{{-1,-1}, {-1,-1}, {-1,-1}, {-1,-1}, {-1,-1}},
+	{{-1,-1}, {-1,-1}, {-1,-1}, {-1,-1}, {-1,-1}},
+	{{-1,-1}, {-1,-1}, {-1,-1}, {-1,-1}, {-1,-1}},
+};
+
+void visit(int row, int col, struct point pre)
+{
+	struct point visit_point = { row, col };
+	maze[row][col] = 2;
+	predecessor[row][col] = pre;
+	push(visit_point);
+}
+
+int main(void)
+{
+	struct point p = { 0, 0 };
+
+	maze[p.row][p.col] = 2;
+	push(p);	
+	
+	while (!is_empty()) {
+		p = pop();
+		if (p.row == MAX_ROW - 1  /* goal */
+		    && p.col == MAX_COL - 1)
+			break;
+		if (p.col+1 < MAX_COL     /* right */
+		    && maze[p.row][p.col+1] == 0)
+			visit(p.row, p.col+1, p);
+		if (p.row+1 < MAX_ROW     /* down */
+		    && maze[p.row+1][p.col] == 0)
+			visit(p.row+1, p.col, p);
+		if (p.col-1 >= 0          /* left */
+		    && maze[p.row][p.col-1] == 0)
+			visit(p.row, p.col-1, p);
+		if (p.row-1 >= 0          /* up */
+		    && maze[p.row-1][p.col] == 0)
+			visit(p.row-1, p.col, p);
+		print_maze();
+	}
+	if (p.row == MAX_ROW - 1 && p.col == MAX_COL - 1) {
+		printf("(%d, %d)\n", p.row, p.col);
+		while (predecessor[p.row][p.col].row != -1) {
+			p = predecessor[p.row][p.col];
+			printf("(%d, %d)\n", p.row, p.col);
+		}
+	} else
+		printf("No path!\n");
+
+	return 0;
+}
+```
+
+这次堆栈里的元素是结构体类型的，用来表示迷宫中一个点的x和y座标。我们用一个新的数据结构保存走迷宫的路线，每个走过的点都有一个前趋（Predecessor）点，表示是从哪儿走到当前点的，比如`predecessor[4][4]`是座标为(3, 4)的点，就表示从(3, 4)走到了(4, 4)，一开始`predecessor`的各元素初始化为无效座标(-1, -1)。在迷宫中探索路线的同时就把路线保存在`predecessor`数组中，已经走过的点在`maze`数组中记为2防止重复走，最后找到终点时就根据`predecessor`数组保存的路线从终点打印到起点。为了帮助理解，我把这个算法改写成伪代码（Pseudocode）如下：
+
+```c
+将起点标记为已走过并压栈;
+while (栈非空) {
+	从栈顶弹出一个点p;
+	if (p这个点是终点)
+		break;
+	否则沿右、下、左、上四个方向探索相邻的点
+	if (和p相邻的点有路可走，并且还没走过)
+		将相邻的点标记为已走过并压栈，它的前趋就是p点;
+}
+if (p点是终点) {
+	打印p点的座标;
+	while (p点有前趋) {
+		p点 = p点的前趋;
+		打印p点的座标;
+	}
+} else
+	没有路线可以到达终点;
+```
+
+我在`while`循环的末尾插了打印语句，每探索一步都打印出当前迷宫的状态（标记了哪些点），从打印结果可以看出这种搜索算法的特点是：每次探索完各个方向相邻的点之后，取其中一个相邻的点走下去，一直走到无路可走了再退回来，取另一个相邻的点再走下去。这称为深度优先搜索（DFS，Depth First Search）。
+
+> 1、修改本节的程序，要求从起点到终点正向打印路线。你能想到几种办法？
+>
+> 2、本节程序中`predecessor`这个数据结构占用的存储空间太多了，改变它的存储方式可以节省空间，想想该怎么改。
+>
+> 3、上一节我们实现了一个基于堆栈的程序，然后改写成递归程序，用函数调用的栈帧替代自己实现的堆栈。本节的DFS算法也是基于堆栈的，请把它改写成递归程序，这样改写可以避免使用`predecessor`数据结构，想想该怎么做。
+
+1、
+
+第一种，不改原有的数据结构，但再建立一个point的栈，最后while的时候入栈，while结束后出栈再输出
+
+第二种，在记录的时候，不记录前驱，改为记录自己的后继，这样到终点后，从(0, 0)处开始遍历输出
+
+2、
