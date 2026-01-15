@@ -3562,8 +3562,260 @@ if (p点是终点) {
 
 1、
 
-第一种，不改原有的数据结构，但再建立一个point的栈，最后while的时候入栈，while结束后出栈再输出
+不改原有的数据结构，在原有输出的部分先不输出，改为入栈，之后再出栈时输出，就反向了，也就变为输出正向路线了，只改了main函数，如下，注意准备入栈前记得先将栈清空
 
-第二种，在记录的时候，不记录前驱，改为记录自己的后继，这样到终点后，从(0, 0)处开始遍历输出
+```c
+int main(void)
+{
+	struct point p = { 0, 0 };
+
+	maze[p.row][p.col] = 2;
+	push(p);	
+	
+	while (!is_empty()) {
+		p = pop();
+		if (p.row == MAX_ROW - 1  /* goal */
+		    && p.col == MAX_COL - 1)
+			break;
+		if (p.col+1 < MAX_COL     /* right */
+		    && maze[p.row][p.col+1] == 0)
+			visit(p.row, p.col+1, p);
+		if (p.row+1 < MAX_ROW     /* down */
+		    && maze[p.row+1][p.col] == 0)
+			visit(p.row+1, p.col, p);
+		if (p.col-1 >= 0          /* left */
+		    && maze[p.row][p.col-1] == 0)
+			visit(p.row, p.col-1, p);
+		if (p.row-1 >= 0          /* up */
+		    && maze[p.row-1][p.col] == 0)
+			visit(p.row-1, p.col, p);
+		print_maze();
+	}
+	if (p.row == MAX_ROW - 1 && p.col == MAX_COL - 1) {
+		while(!is_empty()) pop();
+		push(p);
+		while (predecessor[p.row][p.col].row != -1) {
+			p = predecessor[p.row][p.col];
+			push(p); 
+		}
+		while(!is_empty()){
+			p = pop();
+			printf("(%d, %d)\n", p.row, p.col);
+		}
+	} else
+		printf("No path!\n");
+
+	return 0;
+}
+```
+
+![image-20260115172245919](Typara用到的图片/image-20260115172245919.png)
+
+或者另一种，使用数组把路径存下来，然后再反向打出来，但是和栈的原理是一致的，就不管了吧
+
+
 
 2、
+
+由于每个节点的路径一定是和它相邻的节点，所以只用记它的前驱是它上下左右的哪一个即可，所以用char的二维数组就行了
+
+u代表上，d代表下，l代表左，r代表右，x代表没有
+
+在输出路径时对应判断一下就好了
+
+```c
+#include <stdio.h>
+
+#define MAX_ROW 5
+#define MAX_COL 5
+
+struct point { int row, col; } stack[512];
+int top = 0;
+
+void push(struct point p)
+{
+	stack[top++] = p;
+}
+
+struct point pop(void)
+{
+	return stack[--top];
+}
+
+int is_empty(void)
+{
+	return top == 0;
+}
+
+int maze[MAX_ROW][MAX_COL] = {
+	0, 1, 0, 0, 0,
+	0, 1, 0, 1, 0,
+	0, 0, 0, 0, 0,
+	0, 1, 1, 1, 0,
+	0, 0, 0, 1, 0,
+};
+
+void print_maze(void)
+{
+	int i, j;
+	for (i = 0; i < MAX_ROW; i++) {
+		for (j = 0; j < MAX_COL; j++)
+			printf("%d ", maze[i][j]);
+		putchar('\n');
+	}
+	printf("*********\n");
+}
+
+char predecessor[MAX_ROW][MAX_COL] = {
+	{'x', 'x', 'x', 'x', 'x'},
+	{'x', 'x', 'x', 'x', 'x'},
+    {'x', 'x', 'x', 'x', 'x'},
+    {'x', 'x', 'x', 'x', 'x'},
+    {'x', 'x', 'x', 'x', 'x'},
+};
+
+void print_p(void)
+{
+	int i, j;
+	for (i = 0; i < MAX_ROW; i++) {
+		for (j = 0; j < MAX_COL; j++)
+			printf("%c ", predecessor[i][j]);
+		putchar('\n');
+	}
+	printf("*********\n");
+}
+
+void visit(int row, int col, char pre)
+{
+	struct point visit_point = { row, col };
+	maze[row][col] = 2;
+	predecessor[row][col] = pre;
+	push(visit_point);
+}
+
+int main(void)
+{
+	struct point p = { 0, 0 };
+
+	maze[p.row][p.col] = 2;
+	push(p);	
+	
+	while (!is_empty()) {
+		p = pop();
+		if (p.row == MAX_ROW - 1  /* goal */
+		    && p.col == MAX_COL - 1)
+			break;
+		if (p.col+1 < MAX_COL     /* right */
+		    && maze[p.row][p.col+1] == 0)
+			visit(p.row, p.col+1, 'l');//前驱在左
+		if (p.row+1 < MAX_ROW     /* down */
+		    && maze[p.row+1][p.col] == 0)
+			visit(p.row+1, p.col, 'u');//前驱在上
+		if (p.col-1 >= 0          /* left */
+		    && maze[p.row][p.col-1] == 0)
+			visit(p.row, p.col-1, 'r');//前驱在右
+		if (p.row-1 >= 0          /* up */
+		    && maze[p.row-1][p.col] == 0)
+			visit(p.row-1, p.col, 'd');//前驱在下
+		print_maze();
+	}
+	if (p.row == MAX_ROW - 1 && p.col == MAX_COL - 1) {
+		print_p();
+        printf("(%d, %d)\n", p.row, p.col);
+		while (predecessor[p.row][p.col] != 'x') {
+            switch(predecessor[p.row][p.col]) {
+                case 'u': p.row--; break; // 前驱在上
+                case 'r': p.col++; break; // 前驱在右
+                case 'd': p.row++; break; // 前驱在下
+                case 'l': p.col--; break; // 前驱在左
+            }
+            printf("(%d, %d)\n", p.row, p.col);
+		}
+	} else
+		printf("No path!\n");
+	return 0;
+}
+```
+
+3、递归实现如下
+
+```c
+#include <stdio.h>
+
+#define MAX_ROW 5
+#define MAX_COL 5
+
+int maze[MAX_ROW][MAX_COL] = {
+	0, 1, 0, 0, 0,
+	0, 1, 0, 1, 0,
+	0, 0, 0, 0, 0,
+	0, 1, 1, 1, 0,
+	0, 0, 0, 1, 0,
+};
+
+void print_maze(void)
+{
+	int i, j;
+	for (i = 0; i < MAX_ROW; i++) {
+		for (j = 0; j < MAX_COL; j++)
+			printf("%d ", maze[i][j]);
+		putchar('\n');
+	}
+	printf("*********\n");
+}
+
+// 返回值：1 表示找到了终点，0 表示是死路
+int dfs(int row, int col)
+{
+    // 判断越界
+    if (row < 0 || row >= MAX_ROW || col < 0 || col >= MAX_COL)
+        return 0;
+
+    // 判断是否不可达
+    if (maze[row][col] != 0) 
+        return 0;
+
+    // 标记当前点为已访问
+    maze[row][col] = 2;
+    print_maze(); // 打印过程，看 search 轨迹
+
+    // 到达终点
+    if (row == MAX_ROW - 1 && col == MAX_COL - 1) {
+        printf("(%d, %d)\n", row, col); // 打印终点
+        return 1; // 告诉上一层：找到终点了
+    }
+
+    // 递归搜索四个方向
+    // 如果 dfs(某个方向) 返回1，说明那个方向通往终点，打印当前点，并向上一层返回1
+    // 向右
+    if (dfs(row, col + 1)) {
+        printf("(%d, %d)\n", row, col);
+        return 1;
+    }
+    // 向下
+    if (dfs(row + 1, col)) {
+        printf("(%d, %d)\n", row, col);
+        return 1;
+    }
+    // 向左
+    if (dfs(row, col - 1)) {
+        printf("(%d, %d)\n", row, col);
+        return 1;
+    }
+    // 向上
+    if (dfs(row - 1, col)) {
+        printf("(%d, %d)\n", row, col);
+        return 1;
+    }
+    return 0;
+}
+
+int main(void)
+{
+	dfs(0,0);
+
+	return 0;
+}
+```
+
+![image-20260115181432138](Typara用到的图片/image-20260115181432138.png)
