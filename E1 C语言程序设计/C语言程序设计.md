@@ -3819,3 +3819,352 @@ int main(void)
 ```
 
 ![image-20260115181432138](Typara用到的图片/image-20260115181432138.png)
+
+## 4. 队列与广度优先搜索
+
+队列也是一组元素的集合，也提供两种基本操作：Enqueue（入队）将元素添加到队尾，Dequeue（出队）从队头取出元素并返回。
+
+用队列解决迷宫问题。程序如下：
+
+
+
+**例 12.4. 用广度优先搜索解迷宫问题**
+
+```c
+#include <stdio.h>
+
+#define MAX_ROW 5
+#define MAX_COL 5
+
+struct point { int row, col, predecessor; } queue[512];
+int head = 0, tail = 0;
+
+void enqueue(struct point p)
+{
+	queue[tail++] = p;
+}
+
+struct point dequeue(void)
+{
+	return queue[head++];
+}
+
+int is_empty(void)
+{
+	return head == tail;
+}
+
+int maze[MAX_ROW][MAX_COL] = {
+	0, 1, 0, 0, 0,
+	0, 1, 0, 1, 0,
+	0, 0, 0, 0, 0,
+	0, 1, 1, 1, 0,
+	0, 0, 0, 1, 0,
+};
+
+void print_maze(void)
+{
+	int i, j;
+	for (i = 0; i < MAX_ROW; i++) {
+		for (j = 0; j < MAX_COL; j++)
+			printf("%d ", maze[i][j]);
+		putchar('\n');
+	}
+	printf("*********\n");
+}
+
+void visit(int row, int col)
+{
+	struct point visit_point = { row, col, head-1 };
+	maze[row][col] = 2;
+	enqueue(visit_point);
+}
+
+int main(void)
+{
+	struct point p = { 0, 0, -1 };
+
+	maze[p.row][p.col] = 2;
+	enqueue(p);
+	
+	while (!is_empty()) {
+		p = dequeue();
+		if (p.row == MAX_ROW - 1  /* goal */
+		    && p.col == MAX_COL - 1)
+			break;
+		if (p.col+1 < MAX_COL     /* right */
+		    && maze[p.row][p.col+1] == 0)
+			visit(p.row, p.col+1);
+		if (p.row+1 < MAX_ROW     /* down */
+		    && maze[p.row+1][p.col] == 0)
+			visit(p.row+1, p.col);
+		if (p.col-1 >= 0          /* left */
+		    && maze[p.row][p.col-1] == 0)
+			visit(p.row, p.col-1);
+		if (p.row-1 >= 0          /* up */
+		    && maze[p.row-1][p.col] == 0)
+			visit(p.row-1, p.col);
+		print_maze();
+	}
+	if (p.row == MAX_ROW - 1 && p.col == MAX_COL - 1) {
+		printf("(%d, %d)\n", p.row, p.col);
+		while (p.predecessor != -1) {
+			p = queue[p.predecessor];
+			printf("(%d, %d)\n", p.row, p.col);
+		}
+	} else
+		printf("No path!\n");
+
+	return 0;
+}
+```
+
+其实仍然可以像[例 12.3 “用深度优先搜索解迷宫问题”](http://akaedu.github.io/book/ch12s03.html#stackqueue.dfs)一样用`predecessor`数组表示每个点的前趋，但我想换一种更方便的数据结构，直接在每个点的结构体中加一个成员表示前趋：
+
+```
+struct point { int row, col, predecessor; } queue[512];
+int head = 0, tail = 0;
+```
+
+变量`head`和`tail`是队头和队尾指针，`head`总是指向队头，`tail`总是指向队尾的下一个元素。每个点的`predecessor`成员也是一个指针，指向它的前趋在`queue`数组中的位置。如下图所示：
+
+![image-20260116210034319](Typara用到的图片/image-20260116210034319.png)
+
+为了帮助理解，我把这个算法改写成伪代码如下：
+
+```
+将起点标记为已走过并入队;
+while (队列非空) {
+	出队一个点p;
+	if (p这个点是终点)
+		break;
+	否则沿右、下、左、上四个方向探索相邻的点
+	if (和p相邻的点有路可走，并且还没走过)
+		将相邻的点标记为已走过并入队，它的前趋就是刚出队的p点;
+}
+if (p点是终点) {
+	打印p点的座标;
+	while (p点有前趋) {
+		p点 = p点的前趋;
+		打印p点的座标;
+	}
+} else
+	没有路线可以到达终点;
+```
+
+从打印的搜索过程可以看出，这个算法的特点是沿各个方向同时展开搜索，每个可以走通的方向轮流往前走一步，这称为广度优先搜索（BFS，Breadth First Search）。探索迷宫和队列变化的过程如下图所示。
+
+![image-20260116210058804](Typara用到的图片/image-20260116210058804.png)
+
+广度优先是一种步步为营的策略，每次都从各个方向探索一步，将前线推进一步，图中的虚线就表示这个前线，队列中的元素总是由前线的点组成的，可见正是队列先进先出的性质使这个算法具有了广度优先的特点。广度优先搜索还有一个特点是可以找到从起点到终点的最短路径，而深度优先搜索找到的不一定是最短路径。
+
+> 1、本节的例子直接在队列元素中加一个指针成员表示前趋，想一想为什么上一节的[例 12.3 “用深度优先搜索解迷宫问题”](http://akaedu.github.io/book/ch12s03.html#stackqueue.dfs)不能采用这种方法表示前趋？
+>
+> 2、本节例子中给队列分配的存储空间是512个元素，其实没必要这么多，那么解决这个问题至少要分配多少个元素的队列空间呢？跟什么因素有关？
+
+1、通过队列的定义和图12.4可以知道，这里的队列，无论入队还是出队，指针都是往后移，并没有覆盖过元素，也就是每个元素都在队列中永久保存下来了，所以记录前驱只用记录它在队列里的位置即可。而上一节的使用栈来记录，由于栈帧的移动，数据会被覆盖，原先的位置在最后大概率不是原来的元素了，所以一个指针是不能表示前驱的，不过其实把坐标放到元素里也是可行的，但那耗费的空间和原有的方式差不多，就都可以吧，
+
+2、只对这个写死的迷宫的话，最少只需要18即可，也就是把所有能走的点都记录下来即可，或者设置25，也就是迷宫的大小。其实就是和需要入队的元素数有关，因为每个入队的元素都要占据空间且不释放。
+
+## 5. 环形队列
+
+比较[例 12.3 “用深度优先搜索解迷宫问题”](http://akaedu.github.io/book/ch12s03.html#stackqueue.dfs)的栈操作和[例 12.4 “用广度优先搜索解迷宫问题”](http://akaedu.github.io/book/ch12s04.html#stackqueue.bfs)的队列操作可以发现，栈操作的`top`指针在Push时增大而在Pop时减小，栈空间是可以重复利用的，而队列的`head`、`tail`指针都在一直增大，虽然前面的元素已经出队了，但它所占的存储空间却不能重复利用。在[例 12.4 “用广度优先搜索解迷宫问题”](http://akaedu.github.io/book/ch12s04.html#stackqueue.bfs)的解法中，出队的元素仍然有用，保存着走过的路径和每个点的前趋，但大多数程序并不是这样使用队列的，一般情况下出队的元素就不再有保存价值了，这些元素的存储空间应该回收利用，由此想到把队列改造成环形队列（Circular Queue）：把`queue`数组想像成一个圈，`head`和`tail`指针仍然是一直增大的，当指到数组末尾时就自动回到数组开头，就像两个人围着操场赛跑，沿着它们跑的方向看，从`head`到`tail`之间是队列的有效元素，从`tail`到`head`之间是空的存储位置，如果`head`追上`tail`就表示队列空了，如果`tail`追上`head`就表示队列的存储空间满了。如下图所示：
+
+![image-20260116211359799](Typara用到的图片/image-20260116211359799.png)
+
+> 1、现在把迷宫问题的要求改一下，只要求程序给出最后结论就可以了，回答“有路能到达终点”或者“没有路能到达终点”，而不需要把路径打印出来。请把[例 12.4 “用广度优先搜索解迷宫问题”](http://akaedu.github.io/book/ch12s04.html#stackqueue.bfs)改用环形队列实现，然后试验一下解决这个问题至少需要分配多少个元素的队列空间。
+
+```c
+#include <stdio.h>
+
+#define MAX_ROW 5
+#define MAX_COL 5
+#define MAX_NUM 5
+
+struct point { int row, col, predecessor; } queue[512];
+int head = 0, tail = 0;
+
+int is_empty(void)
+{
+	return head == tail;
+}
+
+int is_full(void)
+{
+	return (tail+1) % MAX_NUM == head;
+}
+
+void enqueue(struct point p)
+{
+    if(is_full()){
+        printf("错误：队列已满！(MAX_NUM=%d 不够用)\n", MAX_NUM);
+        return;
+    }
+    queue[tail] = p;
+    tail = (tail + 1) % MAX_NUM;
+}
+
+struct point dequeue(void)
+{
+    if(is_empty()){
+        return {0,0};
+    }
+    struct point t = queue[head];
+    head = (head + 1) % MAX_NUM;
+	return t;
+}
+
+
+
+int maze[MAX_ROW][MAX_COL] = {
+	0, 1, 0, 0, 0,
+	0, 1, 0, 1, 0,
+	0, 0, 0, 0, 0,
+	0, 1, 1, 1, 0,
+	0, 0, 0, 1, 0,
+};
+
+void print_maze(void)
+{
+	int i, j;
+	for (i = 0; i < MAX_ROW; i++) {
+		for (j = 0; j < MAX_COL; j++)
+			printf("%d ", maze[i][j]);
+		putchar('\n');
+	}
+	printf("*********\n");
+}
+
+void visit(int row, int col)
+{
+	struct point visit_point = { row, col, head-1 };
+	maze[row][col] = 2;
+	enqueue(visit_point);
+}
+
+int main(void)
+{
+	struct point p = { 0, 0, -1 };
+
+	maze[p.row][p.col] = 2;
+	enqueue(p);
+	
+	while (!is_empty()) {
+		p = dequeue();
+		if (p.row == MAX_ROW - 1  /* goal */
+		    && p.col == MAX_COL - 1)
+			break;
+		if (p.col+1 < MAX_COL     /* right */
+		    && maze[p.row][p.col+1] == 0)
+			visit(p.row, p.col+1);
+		if (p.row+1 < MAX_ROW     /* down */
+		    && maze[p.row+1][p.col] == 0)
+			visit(p.row+1, p.col);
+		if (p.col-1 >= 0          /* left */
+		    && maze[p.row][p.col-1] == 0)
+			visit(p.row, p.col-1);
+		if (p.row-1 >= 0          /* up */
+		    && maze[p.row-1][p.col] == 0)
+			visit(p.row-1, p.col);
+		// print_maze();
+	}
+	if (p.row == MAX_ROW - 1 && p.col == MAX_COL - 1) {
+		// printf("(%d, %d)\n", p.row, p.col);
+		// while (p.predecessor != -1) {
+		// 	p = queue[p.predecessor];
+		// 	printf("(%d, %d)\n", p.row, p.col);
+		// }
+        printf("有路能到达终点!\n");
+	} else
+		printf("没有路能到达终点!\n");
+
+	return 0;
+}
+```
+
+实现了循环队列，但是为了区分空和满会导致浪费一个空间不能存储，此外，发现解决这个题目队列长度最少为5，因为为长度4时会有队列满的情况发生
+
+![image-20260116223530730](Typara用到的图片/image-20260116223530730.png)
+
+![image-20260116223415253](Typara用到的图片/image-20260116223415253.png)
+
+# 第 13 章 本阶段总结
+
+我们一章一章地纵向学习过来之后，应该理出几个横切面，把拆散到各章节中的知识点串起来。请从以下几个方面整理和复习。
+
+1、C的语法规则。
+
+1. 源文件中所有函数定义之外可以出现哪些语法元素？
+
+   全局变量，函数声明，预处理的指令(#include，#define)，类型的定义
+
+2. 函数定义之中可以出现哪些语法元素？
+
+   变量声明，语句
+
+3. 语句有哪几种？
+
+   表达式，选择语句，循环语句，跳转语句
+
+4. 哪些语法元素需要遵循标识符的命名规则？
+
+   感觉基本上都要吧
+
+5. 表达式由哪些语法元素组成？
+
+   操作符和操作数
+
+6. 到目前为止学过哪些运算符？它们的优先级和结合性是怎样的？
+
+   +, -, *, /, %, &&, ||, !, ++, --, =, ==, ()
+
+   优先级最高的是扩号，然后是单目运算符，然后是双目运算符，最低的是赋值=
+
+   结合性基本上都是左到右，但是!, ++, --, -这些单目运算符，还有赋值= 是右到左
+
+7. 哪些运算符取操作数的左值？哪些运算符的操作数必须是整型？哪些运算符有Side Effect？
+
+   需要取左值的：赋值运算符，自增和自减运算符
+
+   必须是整型的：取模的%，还有数组下标里的索引
+
+   有副作用的：赋值，自增自减
+
+8. 哪些表达式可以做左值？哪些表达式只能做右值？
+
+   可以做左值的：变量，数组
+
+   只能做右值的：常量，计算结果
+
+9. 哪些地方必须用常量表达式？哪些地方必须用整数常量表达式？
+
+   必须用常量表达式的包括全局变量，预处理后面的值，case后面的值，数组的大小
+
+   其中必须用整数常量表达式的主要是数组的大小，但是C99已经可以用变量了。还有case后面的值也必须是整型常量
+
+   
+
+2、思维方法与编程思想。
+
+- 以概念为中心，[第 1 节 “程序和编程语言”](http://akaedu.github.io/book/intro.program.html)
+- 组合规则，[第 5 节 “表达式”](http://akaedu.github.io/book/expr.expression.html)
+- Least Surprise，[第 3 节 “形参和实参”](http://akaedu.github.io/book/ch03s03.html#func.paraarg)
+- 充分条件与必要条件，[第 4 节 “全局变量、局部变量和作用域”](http://akaedu.github.io/book/ch03s04.html#func.localvar)
+- 封装，[第 2 节 “if/else语句”](http://akaedu.github.io/book/ch04s02.html#cond.ifelse)
+- 布尔逻辑，[第 3 节 “布尔代数”](http://akaedu.github.io/book/ch04s03.html#cond.bool)
+- 递归，[第 3 节 “递归”](http://akaedu.github.io/book/ch05s03.html#func2.recursion)
+- 函数式编程，[第 1 节 “while语句”](http://akaedu.github.io/book/ch06s01.html#iter.while)
+- 迭代（[第 6 章 *循环语句*](http://akaedu.github.io/book/ch06.html#iter)）与增量式求解（[第 2 节 “插入排序”](http://akaedu.github.io/book/ch11s02.html#sortsearch.insertion)）
+- 抽象，[第 2 节 “数据抽象”](http://akaedu.github.io/book/ch07s02.html#struct.abstract)
+- 数据驱动，[第 5 节 “多维数组”](http://akaedu.github.io/book/ch08s05.html#array.multidimension)
+- 分而治之，[第 4 节 “归并排序”](http://akaedu.github.io/book/ch11s04.html#sortsearch.merge)
+- 折半查找，[第 6 节 “折半查找”](http://akaedu.github.io/book/ch11s06.html#sortsearch.binary)
+- 回溯，[例 12.3 “用深度优先搜索解迷宫问题”](http://akaedu.github.io/book/ch12s03.html#stackqueue.dfs)
+
+3、调试方法
+
+- 编译错误、运行时错误与语义错误，[第 3 节 “程序的调试”](http://akaedu.github.io/book/ch01s03.html#intro.debug)
+- 增量式开发，[第 2 节 “增量式开发”](http://akaedu.github.io/book/ch05s02.html#func2.incremental)
+- 打印语句与Scaffold，[第 2 节 “增量式开发”](http://akaedu.github.io/book/ch05s02.html#func2.incremental)
+- gdb，[第 10 章 *gdb*](http://akaedu.github.io/book/ch10.html#gdb)
+- DbC与Assertion，[第 6 节 “折半查找”](http://akaedu.github.io/book/ch11s06.html#sortsearch.binary)
