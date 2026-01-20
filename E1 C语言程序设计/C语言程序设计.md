@@ -760,7 +760,9 @@ int countNine(void){
 
 输出为20
 
-![image-20260109192606372](C:\Users\ZHANGYANG\AppData\Roaming\Typora\typora-user-images\image-20260109192606372.png)
+![image-20260120224352925](Typara用到的图片/image-20260120224352925.png)
+
+
 
 ## 2. do/while语句
 
@@ -922,7 +924,7 @@ void print_99(void){
 }
 ```
 
-![image-20260109194543549](C:\Users\ZHANGYANG\AppData\Roaming\Typora\typora-user-images\image-20260109194543549.png)
+![image-20260120224431694](Typara用到的图片/image-20260120224431694.png)
 
 2、
 
@@ -953,7 +955,7 @@ void diamond(int n, char c){
 }
 ```
 
-![image-20260109200234764](C:\Users\ZHANGYANG\AppData\Roaming\Typora\typora-user-images\image-20260109200234764.png)
+![image-20260120224502209](Typara用到的图片/image-20260120224502209.png)
 
 ## 6. goto语句和标号
 
@@ -1306,7 +1308,7 @@ struct complex_struct make_from_mag_ang(double r, double A)
 
 虽然结构体`complex_struct`的存储表示做了这样的改动，`add_complex`、`sub_complex`、`mul_complex`、`div_complex`这几个复数运算的函数却不需要做任何改动，仍然可以用，原因在于这几个函数只把结构体`complex_struct`当作一个整体来使用，而没有直接访问它的成员，因此也不依赖于它有哪些成员。
 
-![image-20260110170859711](C:\Users\ZHANGYANG\AppData\Roaming\Typora\typora-user-images\image-20260110170859711.png)
+![image-20260120224533601](Typara用到的图片/image-20260120224533601.png)
 
 
 
@@ -1432,7 +1434,7 @@ int main(void) {
 }
 ```
 
-![image-20260110170536218](C:\Users\ZHANGYANG\AppData\Roaming\Typora\typora-user-images\image-20260110170536218.png)
+![image-20260120224605320](Typara用到的图片/image-20260120224605320.png)
 
 打印函数应该在图里的最高层，或者说在负数运算层也不是不行
 
@@ -1567,7 +1569,7 @@ int main(void)
 }
 ```
 
-![image-20260110175259798](C:\Users\ZHANGYANG\AppData\Roaming\Typora\typora-user-images\image-20260110175259798.png)
+![image-20260120224634588](Typara用到的图片/image-20260120224634588.png)
 
 ## 3. 数据类型标志
 
@@ -1711,11 +1713,11 @@ double angle(struct complex_struct z)
 
 2、
 
-![image-20260110230237033](C:\Users\ZHANGYANG\AppData\Roaming\Typora\typora-user-images\image-20260110230237033.png)
+![image-20260120224659574](Typara用到的图片/image-20260120224659574.png)
 
 输出为0 2，2很好理解，就是枚举变量里的POLAR的值2，这个0则是main函数里定义的RECTANGULAR的值(我其实感觉不一定是0，只是刚好是0而已)，相当于枚举变量是全局变量，main里的是局部变量，所以局部变量更优先，如果将局部变量注释掉就会变成输出1 2
 
-![image-20260110230801205](C:\Users\ZHANGYANG\AppData\Roaming\Typora\typora-user-images\image-20260110230801205.png)
+![image-20260120224718861](Typara用到的图片/image-20260120224718861.png)
 
 ## 4. 嵌套结构体
 
@@ -4796,3 +4798,461 @@ if (scanf("%d", &man) != 1 || man < 0 || man > 2) {
 16、逗号运算符。左结合。
 
 [[K&R\]](http://akaedu.github.io/book/bi01.html#bibli.kr)第2章也有这样一个列表，但是对于结合性解释得不够清楚。左结合和右结合这两个概念只对双目运算符有意义，对于前缀、后缀和三目运算符我单独做了说明。C语言表达式的详细语法规则可以参考[[C99\]](http://akaedu.github.io/book/bi01.html#bibli.c99)的Annex A.2，其实语法规则并不是用优先级和结合性这两个概念来表述的，有一些细节用优先级和结合性是表达不了的，只有看C99才能了解完整的语法规则。
+
+# 第 21 章 预处理
+
+## 1. 预处理的步骤
+
+现在我们全面了解一下C编译器做语法解析之前的预处理步骤：
+
+1、把[第 2 节 “常量”](http://akaedu.github.io/book/ch02s02.html#expr.constant)提到过的三连符替换成相应的单字符。
+
+2、把用`\`字符续行的多行代码接成一行。例如：
+
+```
+#define STR "hello, "\
+		"world"
+```
+
+经过这个预处理步骤之后接成一行：
+
+```
+#define STR "hello, "		"world"
+```
+
+这种续行的写法要求`\`后面紧跟换行，中间不能有其它空白字符。
+
+3、把**注释（不管是单行注释还是多行注释）都替换成一个空格**。
+
+4、经过以上两步之后去掉了一些换行，有的换行在续行过程中去掉了，有的换行在多行注释之中，也随着注释一起去掉了，剩下的代码行称为逻辑代码行。然后**预处理器把逻辑代码行划分成Token和空白字符**，这时的Token称为预处理Token，包括标识符、整数常量、浮点数常量、字符常量、字符串、运算符和其它符号。继续上面的例子，两个源代码行被接成一个逻辑代码行，然后这个逻辑代码行被划分成Token和空白字符：`#`，`define`，空格，`STR`，空格，`"hello, "`，Tab，Tab，`"world"`。
+
+5、在Token中识别出预处理指示，做相应的**预处理动作**，如果遇到`#include`预处理指示，则把相应的源文件包含进来，并对源文件做以上1-4步预处理。如果遇到宏定义则做宏展开。
+
+我们早在[第 2 节 “数组应用实例：统计随机数”](http://akaedu.github.io/book/ch08s02.html#array.statistic)就认识了预处理指示这个概念，现在给出它的严格定义。**一条预处理指示由一个逻辑代码行组成，以`#`开头，后面跟若干个预处理Token**，在预处理指示中允许使用的空白字符只有空格和Tab。
+
+6、找出字符常量或字符串中的转义序列，用相应的字节来替换它，比如把`\n`替换成字节0x0a。
+
+7、把相邻的字符串连接起来。继续上面的例子，如果代码中有：
+
+```
+printf(
+	STR);
+```
+
+经过第4步处理划分成以下Token：`printf`，`(`，换行，Tab，`STR`，`)`，`;`，换行。
+
+经过第5步宏展开后变成以下Token：`printf`，`(`，换行，Tab，`"hello, "`，Tab，Tab，`"world"`，`)`，`;`，换行。
+
+然后把相邻的字符串连接起来，变成以下Token：`printf`，`(`，换行，Tab，`"hello, world"`，`)`，`;`，换行。
+
+8、经过以上处理之后，把空白字符丢掉，把Token交给C编译器做语法解析，这时就不再是预处理Token，而称为**C Token**了。这里丢掉的空白字符包括空格、换行、水平Tab、垂直Tab、分页符。继续上面的例子，最后交给C编译器做语法解析的Token是：`printf`，`(`，`"hello, world"`，`)`，`;`。注意，把一个预处理指示写成多行要用`\`续行，因为根据定义，一条预处理指示只能由一个逻辑代码行组成，而把C代码写成多行则不需要用`\`续行，因为换行在C代码中只不过是一种空白字符，在做语法解析时所有空白字符都已经丢掉了。
+
+## 2. 宏定义
+
+较大的项目都会用大量的宏定义来组织代码，你可以看看`/usr/include`下面的头文件中用了多少个宏定义。看起来宏展开就是做个替换而已，其实里面有比较复杂的规则，C语言有很多复杂但不常用的语法规则本书并不涉及，但有关宏展开的语法规则本节却力图做全面讲解，因为它很重要也很常用。
+
+### 2.1. 函数式宏定义
+
+以前我们用过的`#define N 20`或`#define STR "hello, world"`这种宏定义可以称为**变量式宏定义**（Object-like Macro），宏定义名可以像变量一样在代码中使用。另外一种宏定义可以像函数调用一样在代码中使用，称为函数式宏定义（Function-like Macro）。例如编辑一个文件`main.c`：
+
+```c
+#define MAX(a, b) ((a)>(b)?(a):(b))
+k = MAX(i&0x0f, j&0x0f)
+```
+
+我们想看第二行的表达式展开成什么样，可以用`gcc`的`-E`选项或`cpp`命令，尽管这个C程序不合语法，但没关系，我们只做预处理而不编译，不会检查程序是否符合C语法。
+
+```c
+$ cpp main.c
+# 1 "main.c"
+# 1 "<built-in>"
+# 1 "<command-line>"
+# 1 "main.c"
+
+k = ((i&0x0f)>(j&0x0f)?(i&0x0f):(j&0x0f))
+```
+
+就像函数调用一样，把两个实参分别替换到宏定义中形参`a`和`b`的位置。注意这种函数式宏定义和真正的函数调用有什么不同：
+
+1、函数式宏定义的**参数没有类型**，预处理器**只**负责**做形式上的替换**，而**不做参数类型检查**，所以传参时要格外小心。
+
+2、**调用真正函数的代码和调用函数式宏定义的代码编译生成的指令不同**。如果`MAX`是个真正的函数，那么它的函数体`return a > b ? a : b;`要编译生成指令，代码中出现的每次调用也要编译生成传参指令和`call`指令。而如果`MAX`是个函数式宏定义，这个宏定义本身倒不必编译生成指令，但是代码中出现的每次调用编译生成的指令都相当于一个函数体，而不是简单的几条传参指令和`call`指令。所以，**使用函数式宏定义编译生成的目标文件会比较大**。
+
+3、定义这种宏要格外小心，如果上面的定义写成`#define MAX(a, b) (a>b?a:b)`，省去内层括号，则宏展开就成了`k = (i&0x0f>j&0x0f?i&0x0f:j&0x0f)`，运算的优先级就错了。同样道理，这个宏定义的外层括号也是不能省的，想一想为什么。
+
+4、调用函数时先求实参表达式的值再传给形参，如果实参表达式有Side Effect，那么这些Side Effect只发生一次。例如`MAX(++a, ++b)`，如果`MAX`是个真正的函数，`a`和`b`只增加一次。但如果`MAX`是上面那样的宏定义，则要展开成`k = ((++a)>(++b)?(++a):(++b))`，`a`和`b`就不一定是增加一次还是两次了。
+
+5、即使实参没有Side Effect，使用**函数式宏定义也往往会导致较低的代码执行效率**。下面举一个极端的例子，也是个很有意思的例子。
+
+```c
+#define MAX(a, b) ((a)>(b)?(a):(b))
+
+int a[] = { 9, 3, 5, 2, 1, 0, 8, 7, 6, 4 };
+
+int max(int n)
+{
+	return n == 0 ? a[0] : MAX(a[n], max(n-1));
+}
+
+int main(void)
+{
+	max(9);
+	return 0;
+}
+```
+
+这段代码从一个数组中找出最大的数，如果`MAX`是个真正的函数，这个算法就是从前到后遍历一遍数组，时间复杂度是Θ(n)，而现在`MAX`是这样一个函数式宏定义，思考一下这个算法的时间复杂度是多少？
+
+> MAX(a[n], max(n-1))会被编译成
+>
+> (a[n]) > (max(n-1)) ? (a[n]) : (max(n-1))
+>
+> 也就是每次都会调两次max(n-1)，严重浪费了
+
+尽管函数式宏定义和真正的函数相比有很多缺点，但只要小心使用还是会显著提高代码的执行效率，毕竟省去了分配和释放栈帧、传参、传返回值等一系列工作，因此那些简短并且被频繁调用的函数经常用函数式宏定义来代替实现。例如C标准库的很多函数都提供两种实现，一种是真正的函数实现，一种是宏定义实现，这一点以后还要详细解释。
+
+函数式宏定义经常写成这样的形式（取自内核代码`include/linux/pm.h`）：
+
+```c
+#define device_init_wakeup(dev,val) \
+        do { \
+                device_can_wakeup(dev) = !!(val); \
+                device_set_wakeup_enable(dev,val); \
+        } while(0)
+```
+
+为什么要用`do { ... } while(0)`括起来呢？不括起来会有什么问题呢？
+
+```c
+#define device_init_wakeup(dev,val) \
+                device_can_wakeup(dev) = !!(val); \
+                device_set_wakeup_enable(dev,val);
+
+if (n > 0)
+	device_init_wakeup(d, v);
+```
+
+这样宏展开之后，函数体的第二条语句不在`if`条件中。那么简单地用`{ ... }`括起来组成一个语句块不行吗？
+
+```c
+#define device_init_wakeup(dev,val) \
+                { device_can_wakeup(dev) = !!(val); \
+                device_set_wakeup_enable(dev,val); }
+
+if (n > 0)
+	device_init_wakeup(d, v);
+else
+	continue;
+```
+
+问题出在`device_init_wakeup(d, v);`末尾的`;`号，如果不允许写这个`;`号，看起来不像个函数调用，可如果写了这个`;`号，宏展开之后就有语法错误，`if`语句被这个`;`号结束掉了，没法跟`else`配对。因此，`do { ... } while(0)`是一种比较好的解决办法。
+
+如果在一个程序文件中重复定义一个宏，C语言规定这些**重复的宏定义必须一模一样**。例如这样的重复定义是允许的：
+
+```c
+#define OBJ_LIKE (1 - 1)
+#define OBJ_LIKE /* comment */ (1/* comment */-/* comment */  1)/* comment */
+```
+
+在定义的前后多些空白（空格、Tab、注释）没有关系，在定义之中多些空白或少些空白也没有关系，但在定义之中有空白和没有空白被认为是不同的，所以这样的重复定义是不允许的：
+
+```c
+#define OBJ_LIKE (1 - 1)
+#define OBJ_LIKE (1-1)
+```
+
+如果需要重新定义一个宏，和原来的定义不同，可以先用`#undef`取消原来的定义，再重新定义，例如：
+
+```c
+#define X 3
+... /* X is 3 */
+#undef X
+... /* X has no definition */
+#define X 2
+... /* X is 2 */
+```
+
+### 2.2. 内联函数
+
+C99引入一个新关键字`inline`，用于定义内联函数（inline function）。这种用法在内核代码中很常见，例如`include/linux/rwsem.h`中：
+
+```c
+static inline void down_read(struct rw_semaphore *sem)
+{
+        might_sleep();
+        rwsemtrace(sem,"Entering down_read");
+        __down_read(sem);
+        rwsemtrace(sem,"Leaving down_read");
+}
+```
+
+**`inline`关键字告诉编译器，这个函数的调用要尽可能快**，可以当普通的函数调用实现，也可以用宏展开的办法实现。我们做个实验，把上一节的例子改一下：
+
+```c
+nline int MAX(int a, int b)
+{
+	return a > b ? a : b;
+}
+
+int a[] = { 9, 3, 5, 2, 1, 0, 8, 7, 6, 4 };
+
+int max(int n)
+{
+	return n == 0 ? a[0] : MAX(a[n], max(n-1));
+}
+
+int main(void)
+{
+	max(9);
+	return 0;
+}
+```
+
+按往常的步骤编译然后反汇编：
+
+```
+$ gcc main.c -g
+$ objdump -dS a.out
+...
+int max(int n)
+{
+ 8048369:       55                      push   %ebp
+ 804836a:       89 e5                   mov    %esp,%ebp
+ 804836c:       83 ec 0c                sub    $0xc,%esp
+        return n == 0 ? a[0] : MAX(a[n], max(n-1));
+ 804836f:       83 7d 08 00             cmpl   $0x0,0x8(%ebp)
+ 8048373:       75 0a                   jne    804837f <max+0x16>
+ 8048375:       a1 c0 95 04 08          mov    0x80495c0,%eax
+ 804837a:       89 45 fc                mov    %eax,-0x4(%ebp)
+ 804837d:       eb 29                   jmp    80483a8 <max+0x3f>
+ 804837f:       8b 45 08                mov    0x8(%ebp),%eax
+ 8048382:       83 e8 01                sub    $0x1,%eax
+ 8048385:       89 04 24                mov    %eax,(%esp)
+ 8048388:       e8 dc ff ff ff          call   8048369 <max>
+ 804838d:       89 c2                   mov    %eax,%edx
+ 804838f:       8b 45 08                mov    0x8(%ebp),%eax
+ 8048392:       8b 04 85 c0 95 04 08    mov    0x80495c0(,%eax,4),%eax
+ 8048399:       89 54 24 04             mov    %edx,0x4(%esp)
+ 804839d:       89 04 24                mov    %eax,(%esp)
+ 80483a0:       e8 9f ff ff ff          call   8048344 <MAX>
+ 80483a5:       89 45 fc                mov    %eax,-0x4(%ebp)
+ 80483a8:       8b 45 fc                mov    -0x4(%ebp),%eax
+}
+...
+```
+
+可以看到`MAX`是作为普通函数调用的。如果指定优化选项编译，然后反汇编：
+
+```
+$ gcc main.c -g -O
+$ objdump -dS a.out
+...
+int max(int n)
+{
+ 8048355:       55                      push   %ebp
+ 8048356:       89 e5                   mov    %esp,%ebp
+ 8048358:       53                      push   %ebx
+ 8048359:       83 ec 04                sub    $0x4,%esp
+ 804835c:       8b 5d 08                mov    0x8(%ebp),%ebx
+        return n == 0 ? a[0] : MAX(a[n], max(n-1));
+ 804835f:       85 db                   test   %ebx,%ebx
+ 8048361:       75 07                   jne    804836a <max+0x15>
+ 8048363:       a1 a0 95 04 08          mov    0x80495a0,%eax
+ 8048368:       eb 18                   jmp    8048382 <max+0x2d>
+ 804836a:       8d 43 ff                lea    -0x1(%ebx),%eax
+ 804836d:       89 04 24                mov    %eax,(%esp)
+ 8048370:       e8 e0 ff ff ff          call   8048355 <max>
+inline int MAX(int a, int b)
+{
+        return a > b ? a : b;
+ 8048375:       8b 14 9d a0 95 04 08    mov    0x80495a0(,%ebx,4),%edx
+ 804837c:       39 d0                   cmp    %edx,%eax
+ 804837e:       7d 02                   jge    8048382 <max+0x2d>
+ 8048380:       89 d0                   mov    %edx,%eax
+int a[] = { 9, 3, 5, 2, 1, 0, 8, 7, 6, 4 };
+
+int max(int n)
+{
+        return n == 0 ? a[0] : MAX(a[n], max(n-1));
+}
+ 8048382:       83 c4 04                add    $0x4,%esp
+ 8048385:       5b                      pop    %ebx
+ 8048386:       5d                      pop    %ebp
+ 8048387:       c3                      ret    
+...
+```
+
+可以看到，并没有`call`指令调用`MAX`函数，`MAX`函数的指令是内联在`max`函数中的，由于源代码和指令的次序无法对应，`max`和`MAX`函数的源代码也交错在一起显示。
+
+inline 关键字只是给编译器的一个**建议**（Hint）。编译器觉得“这个函数太复杂，内联不划算”或者没开优化选项，它可能就不理你，依然把它当普通函数处理。
+
+------
+
+### 2.3. `#`、`##`运算符和可变参数
+
+在函数式宏定义中，**`#`运算符用于创建字符串，`#`运算符后面应该跟一个形参**（中间可以有空格或Tab），例如：
+
+```c
+#define STR(s) # s
+STR(hello 	world)
+```
+
+用`cpp`命令预处理之后是`"hello␣world"`，**自动用`"`号把实参括起来成为一个字符串，并且实参中的连续多个空白字符被替换成一个空格**。
+
+再比如：
+
+```c
+#define STR(s) #s
+fputs(STR(strncmp("ab\"c\0d", "abc", '\4"')
+	== 0) STR(: @\n), s);
+```
+
+预处理之后是`fputs("strncmp(\"ab\\\"c\\0d\", \"abc\", '\\4\"') == 0" ": @\n", s);`，注意**如果实参中包含字符常量或字符串，则宏展开之后字符串的界定符`"`要替换成`\"`**，字符常量或字符串中的**`\`和`"`字符要替换成`\\`和`\"`**。
+
+在**宏定义中可以用`##`运算符把前后两个预处理Token连接成一个预处理Token**，和`#`运算符不同，`##`运算符不仅限于函数式宏定义，变量式宏定义也可以用。例如：
+
+```
+#define CONCAT(a, b) a##b
+CONCAT(con, cat)
+```
+
+预处理之后是`concat`。再比如，要定义一个宏展开成两个`#`号，可以这样定义：
+
+```
+#define HASH_HASH # ## #
+```
+
+中间的`##`是运算符，宏展开时前后两个`#`号被这个运算符连接在一起。注意中间的两个空格是不可少的，如果写成`####`，会被划分成`##`和`##`两个Token，而根据定义`##`运算符用于连接前后两个预处理Token，不能出现在宏定义的开头或末尾，所以会报错。
+
+我们知道`printf`函数带有可变参数，**函数式宏定义也可以带可变参数**，同样是在参数列表中用`...`表示可变参数。例如：
+
+```c
+#define showlist(...) printf(#__VA_ARGS__)
+#define report(test, ...) ((test)?printf(#test):\
+	printf(__VA_ARGS__))
+showlist(The first, second, and third items.);
+report(x>y, "x is %d but y is %d", x, y);
+```
+
+预处理之后变成：
+
+```c
+printf("The first, second, and third items.");
+((x>y)?printf("x>y"): printf("x is %d but y is %d", x, y));
+```
+
+**在宏定义中，可变参数的部分用`__VA_ARGS__`表示，实参中对应`...`的几个参数可以看成一个参数替换到宏定义中`__VA_ARGS__`所在的地方**。
+
+> `__VA_ARGS__`会带着`,`
+
+调用函数式宏定义允许传空参数，这一点和函数调用不同，通过下面几个例子理解空参数的用法。
+
+```c
+#define FOO() foo
+FOO()
+```
+
+预处理之后变成`foo`。`FOO`在定义时不带参数，在调用时也不允许传参数给它。
+
+```c
+#define FOO(a) foo##a
+FOO(bar)
+FOO()
+```
+
+预处理之后变成：
+
+```
+foobar
+foo
+```
+
+`FOO`在定义时带一个参数，在调用时必须传一个参数给它，如果不传参数则表示传了一个空参数。
+
+```c
+#define FOO(a, b, c) a##b##c
+FOO(1,2,3)
+FOO(1,2,)
+FOO(1,,3)
+FOO(,,3)
+```
+
+预处理之后变成：
+
+```
+123
+12
+13
+3
+```
+
+`FOO`在定义时带三个参数，在调用时也必须传三个参数给它，空参数的位置可以空着，但必须给够三个参数，`FOO(1,2)`这样的调用是错误的。
+
+```
+#define FOO(a, ...) a##__VA_ARGS__
+FOO(1)
+FOO(1,2,3,)
+```
+
+预处理之后变成：
+
+```
+1
+12,3,
+```
+
+`FOO(1)`这个调用相当于可变参数部分传了一个空参数，`FOO(1,2,3,)`这个调用相当于可变参数部分传了三个参数，第三个是空参数。
+
+`gcc`有一种扩展语法，如果`##`运算符用在`__VA_ARGS__`前面，除了起连接作用之外还有特殊的含义，例如内核代码`net/netfilter/nf_conntrack_proto_sctp.c`中的：
+
+```
+#define DEBUGP(format, ...) printk(format, ## __VA_ARGS__)
+```
+
+`printk`这个内核函数相当于`printf`，也带有格式化字符串和可变参数，由于内核不能调用`libc`的函数，所以另外实现了一个打印函数。这个函数式宏定义可以这样调用：`DEBUGP("info no. %d", 1)`。也可以这样调用：`DEBUGP("info")`。后者相当于可变参数部分传了一个空参数，但展开后并不是`printk("info",)`，而是`printk("info")`，当`__VA_ARGS`是空参数时，`##`运算符把它前面的`,`号“吃”掉了。
+
+### 2.4. 宏展开的步骤
+
+以上举的宏展开的例子都是最简单的，有些宏展开的过程要做多次替换，例如：
+
+```c
+#define sh(x) printf("n" #x "=%d, or %d\n",n##x,alt[x])
+#define sub_z  26
+sh(sub_z)
+```
+
+`sh(sub_z)`要用`sh(x)`这个宏定义来展开，形参`x`对应的实参是`sub_z`，替换过程如下：
+
+1. `#x`要替换成`"sub_z"`。
+2. `n##x`要替换成`nsub_z`。
+3. 除了带`#`和`##`运算符的参数之外，其它参数在替换之前要对实参本身做充分的展开，所以应该先把`sub_z`展开成26再替换到`alt[x]`中`x`的位置。
+4. 现在展开成了`printf("n" "sub_z" "=%d, or %d\n",nsub_z,alt[26])`，所有参数都替换完了，这时编译器会再扫描一遍，再找出可以展开的宏定义来展开，假设`nsub_z`或`alt`是变量式宏定义，这时会进一步展开。
+
+再举一个例子：
+
+```
+#define x 3
+#define f(a) f(x * (a))
+#undef x
+#define x 2
+#define g f
+#define t(a) a
+
+t(t(g)(0) + t)(1);
+```
+
+展开的步骤是：
+
+1. 先把`g`展开成`f`再替换到`#define t(a) a`中，得到`t(f(0) + t)(1);`。
+
+2. 根据`#define f(a) f(x * (a))`，得到`t(f(x * (0)) + t)(1);`。
+
+3. 把`x`替换成2，得到`t(f(2 * (0)) + t)(1);`。
+
+   注意，一开始定义`x`为3，但是后来用`#undef x`取消了`x`的定义，又重新定义`x`为2。
+
+   当处理到`t(t(g)(0) + t)(1);`这一行代码时`x`已经定义成2了，所以用2来替换。
+
+   还要注意一点，现在得到的`t(f(2 * (0)) + t)(1);`中仍然有`f`，**但不能再次根据`#define f(a) f(x * (a))`展开了，`f(2 * (0))`就是由展开`f(0)`得到的**，这里面再遇到`f`就不展开了，这样规定可以避免无穷展开（类似于无穷递归），因此我们可以放心地使用递归定义，例如`#define a a[0]`，`#define a a.member`等。
+
+4. 根据`#define t(a) a`，最终展开成`f(2 * (0)) + t(1);`。这时不能再展开`t(1)`了，因为这里的`t`就是由展开`t(f(2 * (0)) + t)`得到的，所以不能再展开了。
