@@ -5256,3 +5256,136 @@ t(t(g)(0) + t)(1);
    还要注意一点，现在得到的`t(f(2 * (0)) + t)(1);`中仍然有`f`，**但不能再次根据`#define f(a) f(x * (a))`展开了，`f(2 * (0))`就是由展开`f(0)`得到的**，这里面再遇到`f`就不展开了，这样规定可以避免无穷展开（类似于无穷递归），因此我们可以放心地使用递归定义，例如`#define a a[0]`，`#define a a.member`等。
 
 4. 根据`#define t(a) a`，最终展开成`f(2 * (0)) + t(1);`。这时不能再展开`t(1)`了，因为这里的`t`就是由展开`t(f(2 * (0)) + t)`得到的，所以不能再展开了。
+
+
+
+## 3. 条件预处理指示
+
+条件预处理指示也常用于源代码的配置管理，例如：
+
+```c
+#if MACHINE == 68000
+    int x;
+#elif MACHINE == 8086
+    long x;
+#else    /* all others */
+    #error UNKNOWN TARGET MACHINE
+#endif
+```
+
+假设这段程序是为多种平台编写的，在68000平台上需要定义`x`为`int`型，在8086平台上需要定义`x`为`long`型，对其它平台暂不提供支持，就可以用条件预处理指示来写。如果在预处理这段代码之前，`MACHINE`被定义为68000，则包含`int x;`这段代码；否则如果`MACHINE`被定义为8086，则包含`long x;`这段代码；否则（`MACHINE`没有定义，或者定义为其它值），包含`#error UNKNOWN TARGET MACHINE`这段代码，编译器遇到这个预处理指示就报错退出，错误信息就是`UNKNOWN TARGET MACHINE`。
+
+如果要为8086平台编译这段代码，有几种可选的办法：
+
+1、手动编辑代码，在前面添一行`#define MACHINE 8086`。这样做的缺点是难以管理，如果这个项目中有很多源文件都需要定义`MACHINE`，每次要为8086平台编译就得把这些定义全部改成8086，每次要为68000平台编译就得把这些定义全部改成68000。
+
+2、在所有需要配置的源文件开头包含一个头文件，在头文件中定义`#define MACHINE 8086`，这样只需要改一个头文件就可以影响所有包含它的源文件。通常这个头文件由配置工具生成，比如在Linux内核源代码的目录下运行`make menuconfig`命令可以出来一个配置菜单，在其中配置的选项会自动转换成头文件`include/linux/autoconf.h`中的宏定义。
+
+3、要定义一个宏不一定非得在代码中用`#define`定义，早在[第 6 节 “折半查找”](http://akaedu.github.io/book/ch11s06.html#sortsearch.binary)我们就见过用`gcc`的`-D`选项定义一个宏`NDEBUG`。对于上面的例子，我们需要给`MACHINE`定义一个值，可以写成类似这样的命令：`gcc -c -DMACHINE=8086 main.c`。这种办法需要给每个编译命令都加上适当的选项，和第2种方法相比似乎也很麻烦，第2种方法在头文件中只写一次宏定义就可以在很多源文件中生效，第3种方法能不能做到“只写一次到处生效”呢？等以后学习了Makefile就有办法了。
+
+最后通过下面的例子说一下`#if`后面的表达式：
+
+```
+#define VERSION  2
+#if defined x || y || VERSION < 3
+```
+
+1. 首先处理`defined`运算符，`defined`运算符一般用作表达式中的一部分，如果单独使用，`#if defined x`相当于`#ifdef x`，而`#if !defined x`相当于`#ifndef x`。在这个例子中，如果`x`这个宏有定义，则把`defined x`替换为1，否则替换为0，因此变成`#if 0 || y || VERSION < 3`。
+2. 然后把有定义的宏展开，变成`#if 0 || y || 2 < 3`。
+3. 把没有定义的宏替换成0，变成`#if 0 || 0 || 2 < 3`，注意，即使前面定义了一个变量名是`y`，在这一步也还是替换成0，因为`#if`的表达式必须在编译时求值，**其中包含的名字只能是宏定义**。
+4. 把得到的表达式`0 || 0 || 2 < 3`像C表达式一样求值，求值的结果是`#if 1`，因此条件成立。
+
+## 4. 其它预处理特性
+
+`#pragma`预处理指示供编译器实现一些非标准的特性，C标准没有规定`#pragma`后面应该写什么以及起什么作用，由编译器自己规定。有的编译器用`#pragma`定义一些特殊功能寄存器名，有的编译器用`#pragma`定位链接地址，本书不做深入讨论。如果编译器在代码中碰到不认识的`#pragma`指示则忽略它，例如`gcc`的`#pragma`指示都是`#pragma GCC ...`这种形式，用别的编译器编译则忽略这些指示。
+
+C标准规定了几个特殊的宏，在不同的地方使用可以自动展开成不同的值，常用的有`__FILE__`和`__LINE__`，**`__FILE__`展开为当前源文件的文件名**，是一个字符串，**`__LINE__`展开为当前代码行的行号**，是一个整数。这两个宏在源代码中不同的位置使用会自动取不同的值，显然不是用`#define`能定义得出来的，它们是编译器内建的特殊的宏。在打印调试信息时打印这两个宏可以给开发者非常有用的提示，例如在[第 6 节 “折半查找”](http://akaedu.github.io/book/ch11s06.html#sortsearch.binary)我们看到`assert`函数打印的错误信息就有`__FILE__`和`__LINE__`的值。现在我们自己实现这个`assert`函数，以理解它的原理。这个实现出自[[Standard C Library\]](http://akaedu.github.io/book/bi01.html#bibli.standardclib)：
+
+
+
+**例 21.3. assert.h的一种实现**
+
+```c
+/* assert.h standard header */
+#undef assert	/* remove existing definition */
+
+#ifdef NDEBUG
+	#define assert(test)	((void)0)
+#else		/* NDEBUG not defined */
+	void _Assert(char *);
+	/* macros */
+	#define _STR(x) _VAL(x)
+	#define _VAL(x) #x
+	#define assert(test)	((test) ? (void)0 \
+		: _Assert(__FILE__ ":" _STR(__LINE__) " " #test))
+#endif
+```
+
+通过这个例子可以全面复习本章所讲的知识。C标准规定`assert`应该实现为宏定义而不是一个真正的函数，并且`assert(test)`这个表达式的值应该是`void`类型的。
+
+首先用`#undef assert`确保取消前面对`assert`的定义，然后分两种情况：如果定义了`NDEBUG`，那么`assert(test)`直接定义成一个`void`类型的值，什么也不做；如果没有定义`NDEBUG`，则要判断测试条件`test`是否成立，如果条件成立就什么也不做，如果不成立则调用`_Assert`函数。
+
+假设在`main.c`文件的第`33`行调用`assert(is_sorted())`，那么`__FILE__`是字符串`"main.c"`，`__LINE__`是整数`33`，`#test`是字符串`"is_sorted()"`。注意`_STR(__LINE__)`的展开过程：首先展开成`_VAL(33)`，然后进一步展开成字符串`"33"`。这样，最后`_Assert`调用的形式是`_Assert("main.c" ":" "33" " " "is_sorted()")`，传给`_Assert`函数的字符串是`"main.c:33 is_sorted()"`。`_Assert`函数是我们自己定义的，在另一个源文件中：
+
+```c
+/* xassert.c _Assert function */
+#include <stdio.h>
+#include <stdlib.h>
+
+void _Assert(char *mesg)
+{		/* print assertion message and abort */
+	fputs(mesg, stderr);
+	fputs(" -- assertion failed\n", stderr);
+	abort();
+}
+```
+
+注意，在头文件`assert.h`中自己定义的内部使用的标识符都以`_`线开头，例如`_STR`，`_VAL`，`_Assert`，因为我们在模拟C标准库的实现，在[第 3 节 “变量”](http://akaedu.github.io/book/expr.variable.html)讲过，以`_`线开头的标识符通常由编译器和C语言库使用，在`/usr/include`下的头文件中你可以看到大量`_`线开头的标识符。另外一个问题，为什么我们不直接在`assert`的宏定义中调用`fputs`和`abort`呢？因为调用这两个函数需要包含`stdio.h`和`stdlib.h`，**C标准库的头文件应该是相互独立的**，一个程序只要包含`assert.h`就应该能使用`assert`，而不应该再依赖于别的头文件。`_Assert`中的`fputs`向标准错误输出打印错误信息，`abort`异常终止当前进程，这些函数以后再详细讨论。
+
+现在测试一下我们的`assert`实现，把`assert.h`和`xassert.c`和测试代码`main.c`放在同一个目录下。
+
+```
+/* main.c */
+#include "assert.h"
+
+int main(void)
+{
+	assert(2>3);
+	return 0;
+}
+```
+
+注意`#include "assert.h"`要用`"`引号而不要用`<>`括号，以保证包含的是我们自己写的`assert.h`而非C标准库的头文件。然后编译运行：
+
+```
+$ gcc main.c xassert.c
+$ ./a.out
+main.c:6 2>3 -- assertion failed
+Aborted
+```
+
+在打印调试信息时除了文件名和行号之外还可以打印出当前函数名，C99引入一个特殊的标识符`__func__`支持这一功能。这个标识符应该是一个变量名而不是宏定义，不属于预处理的范畴，但它的作用和`__FILE__`、`__LINE__`类似，所以放在一起讲。例如：
+
+
+
+**例 21.4. 特殊标识符__func__**
+
+```c
+#include <stdio.h>
+
+void myfunc(void)
+{
+	printf("%s\n", __func__);
+}
+
+int main(void)
+{
+	myfunc();
+	printf("%s\n", __func__);
+	return 0;
+}
+$ gcc main.c
+$ ./a.out 
+myfunc
+main
+```
