@@ -5933,7 +5933,308 @@ int (*pa)[10] = &a[0];
 > 要想通过`pa`或`ppa`访问数组`a`中的`'r'`元素，分别应该怎么写？
 
 ```c
-pa = pa + 5;
-printf("%c", (*pa)[1]);
+#include <stdio.h>
+
+int main() {
+
+    char a[4][3][2] = {
+    	   {{'a', 'b'}, {'c', 'd'}, {'e', 'f'}},
+		   {{'g', 'h'}, {'i', 'j'}, {'k', 'l'}},
+		   {{'m', 'n'}, {'o', 'p'}, {'q', 'r'}},
+		   {{'s', 't'}, {'u', 'v'}, {'w', 'x'}}
+		};
+    char (*pa)[2] = &a[1][0];
+    char (*ppa)[3][2] = &a[1];
+    
+    //pa是一个数组指针，每个指针包含两个元素，起始地址位a里的{'g', 'h'}那里，想要输出r，则要往后5个元素
+    //然后输出第2个值即可
+    pa = pa + 5;
+    printf("%c\n", (*pa)[1]);
+    //ppa也是数组指针，但是大小不同，它一个元素占3*2，初始地址在{{'g', 'h'}, {'i', 'j'}, {'k', 'l'}}
+    //所以想输出r，要先加1，然后输出第3个元素的第二个值即可；
+    ppa = ppa + 1;
+    printf("%c", (*ppa)[2][1]);
+    return 0;
+}
 ```
 
+![image-20260126181255593](Typara用到的图片/image-20260126181255593.png)
+
+## 8. 函数类型和函数指针类型
+
+在C语言中，**函数也是一种类型**，**可以定义指向函数的指针**。我们知道，指针变量的内存单元存放一个地址值，而**函数指针存放的就是函数的入口地址**（位于`.text`段）。下面看一个简单的例子：
+
+
+
+**例 23.3. 函数指针**
+
+```c
+#include <stdio.h>
+
+void say_hello(const char *str)
+{
+	printf("Hello %s\n", str);
+}
+
+int main(void)
+{
+	void (*f)(const char *) = say_hello;
+	f("Guys");
+	return 0;
+}
+```
+
+分析一下变量`f`的类型声明`void (*f)(const char *)`，`f`首先跟`*`号结合在一起，因此是一个指针。
+
+`(*f)`外面是一个函数原型的格式，参数是`const char *`，返回值是`void`，所以`f`是指向这种函数的指针。
+
+而`say_hello`的参数是`const char *`，返回值是`void`，正好是这种函数，因此`f`可以指向`say_hello`。注意，`say_hello`是一种函数类型，而**函数类型和数组类型类似，做右值使用时自动转换成函数指针类型**，所以可以直接赋给`f`，当然也可以写成`void (*f)(const char *) = &say_hello;`，把函数`say_hello`先取地址再赋给`f`，就不需要自动类型转换了。
+
+可以直接通过函数指针调用函数，如上面的`f("Guys")`，也可以先用`*f`取出它所指的函数类型，再调用函数，即`(*f)("Guys")`。可以这么理解：函数调用运算符`()`要求操作数是函数指针，所以`f("Guys")`是最直接的写法，而`say_hello("Guys")`或`(*f)("Guys")`则是把函数类型自动转换成函数指针然后做函数调用。
+
+下面再举几个例子区分函数类型和函数指针类型。首先定义函数类型F：
+
+```c
+typedef int F(void);
+```
+
+这种类型的函数不带参数，返回值是`int`。那么可以这样声明`f`和`g`：
+
+```c
+F f, g;
+```
+
+相当于声明：
+
+```c
+int f(void);
+int g(void);
+```
+
+下面这个函数声明是错误的：
+
+```c
+F h(void);
+```
+
+因为**函数可以返回`void`类型、标量类型、结构体、联合体，但不能返回函数类型**，也不能返回数组类型。而下面这个函数声明是正确的：
+
+```c
+F *e(void);
+```
+
+函数`e`返回一个`F *`类型的函数指针。如果给`e`多套几层括号仍然表示同样的意思：
+
+```c
+F *((e))(void);
+```
+
+但如果把`*`号也套在括号里就不一样了：
+
+```c
+int (*fp)(void);
+```
+
+这样声明了一个函数指针，而不是声明一个函数。`fp`也可以这样声明：
+
+```
+F *fp;
+```
+
+通过函数指针调用函数和直接调用函数相比有什么好处呢？我们研究一个例子。回顾[第 3 节 “数据类型标志”](http://akaedu.github.io/book/ch07s03.html#struct.datatag)的习题1，由于结构体中多了一个类型字段，需要重新实现`real_part`、`img_part`、`magnitude`、`angle`这些函数，你当时是怎么实现的？大概是这样吧：
+
+```c
+double real_part(struct complex_struct z)
+{
+	if (z.t == RECTANGULAR)
+		return z.a;
+	else
+		return z.a * cos(z.b);
+}
+```
+
+现在类型字段有两种取值，`RECTANGULAR`和`POLAR`，每个函数都要`if ... else ...`，如果类型字段有三种取值呢？每个函数都要`if ... else if ... else`，或者`switch ... case ...`。这样维护代码是不够理想的，现在我用函数指针给出一种实现：
+
+```c
+double rect_real_part(struct complex_struct z)
+{
+	return z.a;
+}
+
+double rect_img_part(struct complex_struct z)
+{
+	return z.b;
+}
+
+double rect_magnitude(struct complex_struct z)
+{
+	return sqrt(z.a * z.a + z.b * z.b);
+}
+
+double rect_angle(struct complex_struct z)
+{
+	double PI = acos(-1.0);
+
+	if (z.a > 0)
+		return atan(z.b / z.a);
+	else
+		return atan(z.b / z.a) + PI;
+}
+
+double pol_real_part(struct complex_struct z)
+{
+	return z.a * cos(z.b);
+}
+
+double pol_img_part(struct complex_struct z)
+{
+	return z.a * sin(z.b);
+}
+
+double pol_magnitude(struct complex_struct z)
+{
+	return z.a;
+}
+
+double pol_angle(struct complex_struct z)
+{
+	return z.b;
+}
+
+double (*real_part_tbl[])(struct complex_struct) = { rect_real_part, pol_real_part };
+double (*img_part_tbl[])(struct complex_struct) = { rect_img_part, pol_img_part };
+double (*magnitude_tbl[])(struct complex_struct) = { rect_magnitude, pol_magnitude };
+double (*angle_tbl[])(struct complex_struct) = { rect_angle, pol_angle };
+
+#define real_part(z) real_part_tbl[z.t](z)
+#define img_part(z) img_part_tbl[z.t](z)
+#define magnitude(z) magnitude_tbl[z.t](z)
+#define angle(z) angle_tbl[z.t](z)
+```
+
+当调用`real_part(z)`时，用类型字段`z.t`做索引，从指针数组`real_part_tbl`中取出相应的函数指针来调用，也可以达到`if ... else ...`的效果，但相比之下这种实现更好，每个函数都只做一件事情，而不必用`if ... else ...`兼顾好几件事情，比如`rect_real_part`和`pol_real_part`各做各的，互相独立，而不必把它们的代码都耦合到一个函数中。
+
+“低耦合，高内聚”（Low Coupling, High Cohesion）是程序设计的一条基本原则，这样可以更好地复用现有代码，使代码更容易维护。如果类型字段`z.t`又多了一种取值，只需要添加一组新的函数，修改函数指针数组，原有的函数仍然可以不加改动地复用。
+
+## 9. 不完全类型和复杂声明
+
+![image-20260126183459955](Typara用到的图片/image-20260126183459955.png)
+
+C语言的类型分为**函数类型、对象类型和不完全类型**三大类。对象类型又分为标量类型和非标量类型。指针类型属于标量类型，因此也可以做逻辑与、或、非运算的操作数和`if`、`for`、`while`的控制表达式，`NULL`指针表示假，非`NULL`指针表示真。不完全类型是暂时没有完全定义好的类型，编译器不知道这种类型该占几个字节的存储空间，例如：
+
+```c
+struct s;
+union u;
+char str[];
+```
+
+具有不完全类型的变量可以通过多次声明组合成一个完全类型，比如数组`str`声明两次：
+
+```
+char str[];
+char str[10];
+```
+
+当编译器碰到第一个声明时，认为`str`是一个不完全类型，碰到第二个声明时`str`就组合成完全类型了，如果编译器处理到程序文件的末尾仍然无法把`str`组合成一个完全类型，就会报错。读者可能会想，这个语法有什么用呢？为何不在第一次声明时就把`str`声明成完全类型？有些情况下这么做有一定的理由，比如第一个声明是写在头文件里的，第二个声明写在`.c`文件里，这样如果要改数组长度，只改`.c`文件就行了，头文件可以不用改。
+
+**不完全的结构体类型有重要作用**：
+
+```c
+struct s {
+	struct t *pt;
+};
+
+struct t {
+	struct s *ps;
+};
+```
+
+`struct s`和`struct t`各有一个指针成员指向另一种类型。编译器从前到后依次处理，当看到`struct s { struct t* pt; };`时，认为`struct t`是一个不完全类型，`pt`是一个指向不完全类型的指针，尽管如此，这个指针却是完全类型，因为不管什么指针都占4个字节存储空间，这一点很明确。然后编译器又看到`struct t { struct s *ps; };`，这时`struct t`有了完整的定义，就组合成一个完全类型了，`pt`的类型就组合成一个指向完全类型的指针。由于`struct s`在前面有完整的定义，所以`struct s *ps;`也定义了一个指向完全类型的指针。
+
+这样的类型定义是错误的：
+
+```
+struct s {
+	struct t ot;
+};
+
+struct t {
+	struct s os;
+};
+```
+
+编译器看到`struct s { struct t ot; };`时，认为`struct t`是一个不完全类型，无法定义成员`ot`，因为不知道它该占几个字节。
+
+所以**结构体中可以递归地定义指针成员，但不能递归地定义变量成员**，你可以设想一下，假如允许递归地定义变量成员，`struct s`中有一个`struct t`，`struct t`中又有一个`struct s`，`struct s`又中有一个`struct t`，这就成了一个无穷递归的定义。
+
+以上是两个结构体构成的递归定义，一个结构体也可以递归定义：
+
+```
+struct s {
+	char data[6];
+	struct s* next;
+};
+```
+
+当编译器处理到第一行`struct s {`时，认为`struct s`是一个不完全类型，当处理到第三行`struct s *next;`时，认为`next`是一个指向不完全类型的指针，当处理到第四行`};`时，`struct s`成了一个完全类型，`next`也成了一个指向完全类型的指针。类似这样的结构体是很多种数据结构的基本组成单元，如链表、二叉树等，我们将在后面详细介绍。下图示意了由几个`struct s`结构体组成的链表，这些结构体称为链表的节点（Node）。
+
+![image-20260126183553115](Typara用到的图片/image-20260126183553115.png)
+
+`head`指针是链表的头指针，指向第一个节点，每个节点的`next`指针域指向下一个节点，最后一个节点的`next`指针域为`NULL`，在图中用0表示。
+
+### 复杂声明
+
+可以想像得到，如果把指针和数组、函数、结构体层层组合起来可以构成非常复杂的类型，下面看几个复杂的声明。
+
+```
+typedef void (*sighandler_t)(int);
+sighandler_t signal(int signum, sighandler_t handler);
+```
+
+这个声明来自`signal(2)`。`sighandler_t`是一个函数指针，它所指向的函数带一个参数，返回值为`void`，`signal`是一个函数，它带两个参数，一个`int`参数，一个`sighandler_t`参数，返回值也是`sighandler_t`参数。如果把这两行合成一行写，就是：
+
+```
+void (*signal(int signum, void (*handler)(int)))(int);
+```
+
+在分析复杂声明时，要借助`typedef`把复杂声明分解成几种基本形式：
+
+- `T *p;`，`p`是指向`T`类型的指针。
+- `T a[];`，`a`是由`T`类型的元素组成的数组，但有一个例外，如果`a`是函数的形参，则相当于`T *a;`
+- `T1 f(T2, T3...);`，`f`是一个函数，参数类型是`T2`、`T3`等等，返回值类型是`T1`。
+
+
+
+我们分解一下这个复杂声明：
+
+```
+int (*(*fp)(void *))[10];
+```
+
+
+
+1、`fp`和`*`号括在一起，说明`fp`是一个指针，指向`T1`类型：
+
+```
+typedef int (*T1(void *))[10];
+T1 *fp;
+```
+
+2、`T1`应该是一个函数类型，参数是`void *`，返回值是`T2`类型：
+
+```
+typedef int (*T2)[10];
+typedef T2 T1(void *);
+T1 *fp;
+```
+
+3、`T2`和`*`号括在一起，应该也是个指针，指向`T3`类型：
+
+```
+typedef int T3[10];
+typedef T3 *T2;
+typedef T2 T1(void *);
+T1 *fp;
+```
+
+显然，`T3`是一个`int`数组，由10个元素组成。分解完毕。
