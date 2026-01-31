@@ -6238,3 +6238,190 @@ T1 *fp;
 ```
 
 显然，`T3`是一个`int`数组，由10个元素组成。分解完毕。
+
+# 第 24 章 函数接口
+
+## 1. 本章的预备知识
+
+### 1.1. `strcpy`与`strncpy`
+
+![image-20260131222025878](Typara用到的图片/image-20260131222025878.png)
+
+这个Man Page描述了两个函数，`strcpy`和`strncpy`，敲命令`man strcpy`或者`man strncpy`都可以看到这个Man Page。这两个函数的作用是把一个字符串拷贝给另一个字符串。**SYNOPSIS**部分给出了这两个函数的原型，以及要用这些函数需要包含哪些头文件。参数`dest`、`src`和`n`都加了下划线，有时候并不想从头到尾阅读整个Man Page，而是想查一下某个参数的含义，通过下划线和参数名就能很快找到你关心的部分。
+
+`dest`表示Destination，`src`表示Source，看名字就能猜到是把`src`所指向的字符串拷贝到`dest`所指向的内存空间。这一点从两个参数的类型也能看出来，`dest`是`char *`型的，而`src`是`const char *`型的，说明`src`所指向的内存空间在函数中只能读不能改写，而`dest`所指向的内存空间在函数中是要改写的，显然改写的目的是当函数返回后调用者可以读取改写的结果。因此可以猜到`strcpy`函数是这样用的：
+
+```c
+char buf[10];
+strcpy(buf, "hello");
+printf(buf);
+```
+
+至于`strncpy`的参数`n`是干什么用的，单从函数接口猜不出来，就需要看下面的文档。
+
+![image-20260131222347117](Typara用到的图片/image-20260131222347117.png)
+
+在文档中强调了`strcpy`在拷贝字符串时会把结尾的`'\0'`也拷到`dest`中，因此保证了`dest`中是以`'\0'`结尾的字符串。但另外一个要注意的问题是，`strcpy`只知道`src`字符串的首地址，不知道长度，它会一直拷贝到`'\0'`为止，所以`dest`所指向的内存空间要足够大，否则有可能写越界，例如：
+
+```c
+char buf[10];
+strcpy(buf, "hello world");
+```
+
+如果没有保证`src`所指向的内存空间以`'\0'`结尾，也有可能读越界，例如：
+
+```c
+char buf[10] = "abcdefghij", str[4] = "hell";
+strcpy(buf, str);
+//因为str长度只有4，所以\0并不在
+```
+
+因为`strcpy`函数的实现者通过函数接口无法得知`src`字符串的长度和`dest`内存空间的大小，所以“确保不会写越界”应该是调用者的责任，调用者提供的`dest`参数应该指向足够大的内存空间，“确保不会读越界”也是调用者的责任，调用者提供的`src`参数指向的内存应该确保以`'\0'`结尾。
+
+此外，文档中还强调了`src`和`dest`所指向的内存空间不能有重叠。凡是有指针参数的C标准库函数基本上都有这条要求，每个指针参数所指向的内存空间互不重叠，例如这样调用是不允许的：
+
+```
+char buf[10] = "hello";
+strcpy(buf, buf+1);
+```
+
+`strncpy`的参数`n`指定**最多**从`src`中拷贝`n`个字节到`dest`中，换句话说，如果拷贝到`'\0'`就结束，如果拷贝到`n`个字节还没有碰到`'\0'`，那么也结束，调用者负责提供适当的`n`值，以确保读写不会越界，比如让`n`的值等于`dest`所指向的内存空间的大小：
+
+```
+char buf[10];
+strncpy(buf, "hello world", sizeof(buf));
+```
+
+然而这意味着什么呢？文档中特别用了**Warning**指出，这意味着`dest`有可能不是以`'\0'`结尾的。例如上面的调用，虽然把`"hello world"`截断到10个字符拷贝至`buf`中，但`buf`不是以`'\0'`结尾的，如果再`printf(buf)`就会读越界。如果你需要确保`dest`以`'\0'`结束，可以这么调用：
+
+```
+char buf[10];
+strncpy(buf, "hello world", sizeof(buf));
+buf[sizeof(buf)-1] = '\0';
+```
+
+`strncpy`还有一个特性，如果`src`字符串全部拷完了不足`n`个字节，那么还差多少个字节就补多少个`'\0'`，但是正如上面所述，这并不保证`dest`一定以`'\0'`结束，当`src`字符串的长度大于`n`时，不但不补多余的`'\0'`，连字符串的结尾`'\0'`也不拷贝。`strcpy(3)`的文档已经相当友好了，为了帮助理解，还给出一个`strncpy`的简单实现。
+
+![image-20260131224422112](Typara用到的图片/image-20260131224422112.png)
+
+函数的Man Page都有一部分专门讲返回值的。这两个函数的返回值都是`dest`指针。可是为什么要返回`dest`指针呢？`dest`指针本来就是调用者传过去的，再返回一遍`dest`指针并没有提供任何有用的信息。之所以这么规定是为了把函数调用当作一个指针类型的表达式使用，比如`printf("%s\n", strcpy(buf, "hello"))`，一举两得，如果`strcpy`的返回值是`void`就没有这么方便了。
+
+**CONFORMING TO**部分描述了这个函数是遵照哪些标准实现的。`strcpy`和`strncpy`是C标准库函数，当然遵照C99标准。以后我们还会看到`libc`中有些函数属于POSIX标准但并不属于C标准，例如`write(2)`。
+
+**NOTES**部分给出一些提示信息。这里指出如何确保`strncpy`的`dest`以`'\0'`结尾，和我们上面给出的代码类似，但由于`n`是个变量，在执行`buf[n - 1]= '\0';`之前先检查一下`n`是否大于0，如果`n`不大于0，`buf[n - 1]`就访问越界了，所以要避免。
+
+![image-20260131224829022](Typara用到的图片/image-20260131224829022.png)
+
+**BUGS**部分说明了使用这些函数可能引起的Bug，这部分一定要仔细看。用`strcpy`比用`strncpy`更加不安全，如果在调用`strcpy`之前不仔细检查`src`字符串的长度就有可能写越界，这是一个很常见的错误，例如：
+
+```
+void foo(char *str)
+{
+	char buf[10];
+	strcpy(buf, str);
+	...
+}
+```
+
+`str`所指向的字符串有可能超过10个字符而导致写越界，在[第 4 节 “段错误”](http://akaedu.github.io/book/ch10s04.html#gdb.segfault)我们看到过，这种写越界可能当时不出错，而在函数返回时出现段错误，原因是写越界覆盖了保存在栈帧上的返回地址，函数返回时跳转到非法地址，因而出错。
+
+像`buf`这种由调用者分配并传给函数读或写的一段内存通常称为缓冲区（Buffer），缓冲区写越界的错误称为缓冲区溢出（Buffer Overflow）。如果只是出现段错误那还不算严重，更严重的是缓冲区溢出Bug经常被恶意用户利用，使函数返回时跳转到一个事先设好的地址，执行事先设好的指令，如果设计得巧妙甚至可以启动一个Shell，然后随心所欲执行任何命令，可想而知，如果一个用`root`权限执行的程序存在这样的Bug，被攻陷了，后果将很严重。至于怎样巧妙设计和攻陷一个有缓冲区溢出Bug的程序，有兴趣的读者可以参考[[SmashStack\]](http://akaedu.github.io/book/bi01.html#bibli.smashstack)。
+
+> 1、自己实现一个`strcpy`函数，尽可能简洁，按照本书的编码风格你能用三行代码写出函数体吗？
+>
+> 2、编一个函数，输入一个字符串，要求做一个新字符串，把其中所有的一个或多个连续的空白字符都压缩为一个空格。这里所说的空白包括空格、'\t'、'\n'、'\r'。例如原来的字符串是：
+>
+> ```
+> This Content hoho       is ok
+>         ok?
+> 
+>         file system
+> uttered words   ok ok      ?
+> end.
+> ```
+>
+> 压缩了空白之后就是：
+>
+> ```
+> This Content hoho is ok ok? file system uttered words ok ok ? end.
+> ```
+>
+> 实现该功能的函数接口要求符合下述规范：
+>
+> ```
+> char *shrink_space(char *dest, const char *src, size_t n);
+> ```
+>
+> 各项参数和返回值的含义和`strncpy`类似。完成之后，为自己实现的函数写一个Man Page。
+
+1、
+
+本来是这么写的
+
+```c
+char *strcpy(char *dest, const char *str){
+    for(int i = 0; str[i] != '\0'; i++)
+        dest[i] = str[i];
+    return dest;
+}
+```
+
+但是发现这样dest一定没有\0，所以改成下面这种
+
+```c
+char *strcpy(char *dest, const char *str){
+    int i = 0;
+    while((dest[i] = str[i]) != '\0')i++;
+    return dest;
+}
+```
+
+2、
+
+```c
+char *shrink_space(char *dest, const char *src, size_t n){
+    size_t idx = 0;
+    int flag = 1; 	//用于检验当前是否第一次遇到空白
+    for(size_t i = 0; idx < n && src[i] != '\0'; i++){
+        if(src[i] != ' ' && src[i] != '\t' && src[i] != '\n' && src[i] != '\r'){	//字母
+            dest[idx++] = src[i];
+            flag = 1;
+        } else if(flag){	//空白且第一次
+            dest[idx++] = ' ';
+            flag = 0;
+        }
+    }
+    for(;idx < n; idx++){
+        dest[idx] = '\0';
+    }
+    return dest;
+}
+```
+
+Man Page：
+
+shrink_space
+
+**NAME**
+
+shrink_space  - shrink string's space
+
+**SYNOPSIS**
+
+char *shrink_space(char *dest, const char *src, size_t n)
+
+**DESCRIPTION**
+
+shrink_space()函数可以将连续的空白符(空格、'\t'、'\n'、'\r')压缩成一个空格，压缩的结果，长度最长为n，若不到n后面用'\0'填充。注意这个函数也不会关注写越界和读越界，需要调用者自己注意。
+
+**RETURN VALUE**
+
+返回dest的指针
+
+**NOTES**
+
+注意使用后也要确保字符串最后一位是'\0'
+
+**BUGS**
+
+注意一定一确保dest的长度要大于str，否则可能会发送写越界
